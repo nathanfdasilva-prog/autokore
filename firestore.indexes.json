@@ -1,0 +1,25 @@
+{
+  "indexes": [
+    {"collectionGroup":"ordens_servico","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"mecanico_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"ordens_servico","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"ordens_servico","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"numero","order":"DESCENDING"}]},
+    {"collectionGroup":"ordens_servico","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"finalizadaAt","order":"DESCENDING"}]},
+    {"collectionGroup":"ordens_servico","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"cliente_nome","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"ordens_servico","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"placa","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"ordens_servico","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"agendamentos","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"data_hora","order":"ASCENDING"}]},
+    {"collectionGroup":"agendamentos","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"data_hora","order":"ASCENDING"}]},
+    {"collectionGroup":"estoque","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"nome_lower","order":"ASCENDING"}]},
+    {"collectionGroup":"estoque","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"categoria","order":"ASCENDING"},{"fieldPath":"nome","order":"ASCENDING"}]},
+    {"collectionGroup":"movimentacoes_estoque","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"movimentacoes_estoque","queryScope":"COLLECTION","fields":[{"fieldPath":"item_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"movimentacoes_estoque","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"ASCENDING"}]},
+    {"collectionGroup":"clientes","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"nome","order":"ASCENDING"}]},
+    {"collectionGroup":"veiculos","queryScope":"COLLECTION","fields":[{"fieldPath":"cliente_id","order":"ASCENDING"},{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"avaliacoes","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"avaliacoes","queryScope":"COLLECTION","fields":[{"fieldPath":"oficina_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"ASCENDING"}]},
+    {"collectionGroup":"avaliacoes","queryScope":"COLLECTION","fields":[{"fieldPath":"os_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"avaliacoes","queryScope":"COLLECTION","fields":[{"fieldPath":"mecanico_id","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]}
+  ],
+  "fieldOverrides": []
+}

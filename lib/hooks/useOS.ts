@@ -1,0 +1,210 @@
+'use client'
+// ============================================================
+// HOOK useOS — lib/hooks/useOS.ts
+// CRUD completo de Ordens de Serviço + baixa de estoque.
+// ============================================================
+
+import { useState, useEffect } from 'react'
+import {
+  collection, query, where, orderBy, onSnapshot,
+  doc, addDoc, updateDoc, getDoc,
+  serverTimestamp, db,
+} from '../firebase/firestore'
+import { docToData } from '../firebase/firestore'
+import { baixarEstoque } from './useEstoque'
+import type { OrdemServico, StatusOS, ItemOS } from '../types'
+import { useAuth } from '../context/AuthContext'
+
+// ----------------------------------------------------------
+// Hook: lista as OS do mecânico logado em tempo real
+// Admin vê todas da oficina
+// ----------------------------------------------------------
+export function useMinhasOS() {
+  const { perfil, isAdmin } = useAuth()
+  const [ordens,  setOrdens]  = useState<OrdemServico[]>([])
+  const [loading, setLoading] = useState(true)
+  const [erro,    setErro]    = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!perfil?.oficina_id) return
+
+    const constraints = [
+      where('oficina_id', '==', perfil.oficina_id),
+      orderBy('createdAt', 'desc'),
+    ]
+
+    // Mecânico vê apenas as próprias OS
+    if (!isAdmin) {
+      constraints.splice(1, 0, where('mecanico_id', '==', perfil.uid))
+    }
+
+    const q = query(collection(db, 'ordens_servico'), ...constraints)
+
+    const unsub = onSnapshot(q,
+      snap => {
+        setOrdens(snap.docs.map(d => docToData<OrdemServico>(d)))
+        setLoading(false)
+      },
+      err => {
+        setErro(err.message)
+        setLoading(false)
+      },
+    )
+
+    return () => unsub()
+  }, [perfil?.uid, perfil?.oficina_id, isAdmin])
+
+  return { ordens, loading, erro }
+}
+
+// ----------------------------------------------------------
+// Hook: busca uma OS específica por ID
+// ----------------------------------------------------------
+export function useOS(id: string) {
+  const [os,      setOS]      = useState<OrdemServico | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!id) return
+    const unsub = onSnapshot(doc(db, 'ordens_servico', id), snap => {
+      setOS(snap.exists() ? docToData<OrdemServico>(snap) : null)
+      setLoading(false)
+    })
+    return () => unsub()
+  }, [id])
+
+  return { os, loading }
+}
+
+// ----------------------------------------------------------
+// Gerar próximo número de OS (sequencial por oficina)
+// ----------------------------------------------------------
+async function proximoNumeroOS(oficina_id: string): Promise<number> {
+  const q = query(
+    collection(db, 'ordens_servico'),
+    where('oficina_id', '==', oficina_id),
+    orderBy('numero', 'desc'),
+  )
+  const snap = await import('firebase/firestore').then(({ getDocs }) => getDocs(q))
+  if (snap.empty) return 1
+  const ultimo = snap.docs[0].data().numero ?? 0
+  return ultimo + 1
+}
+
+// ----------------------------------------------------------
+// Criar nova OS
+// ----------------------------------------------------------
+export async function criarOS(dados: {
+  oficina_id:          string
+  cliente_nome:        string
+  cliente_whatsapp:    string
+  veiculo:             string
+  placa:               string
+  tipo_veiculo:        'carro' | 'moto'
+  km_entrada?:         number
+  descricao_problema:  string
+  mecanico_id:         string
+  mecanico_nome:       string
+  agendamento_id?:     string
+}): Promise<string> {
+  const numero = await proximoNumeroOS(dados.oficina_id)
+
+  const ref = await addDoc(collection(db, 'ordens_servico'), {
+    ...dados,
+    numero,
+    status:          'aberta' as StatusOS,
+    itens:           [],
+    valor_pecas:     0,
+    valor_mao_obra:  0,
+    valor_total:     0,
+    observacoes_internas: '',
+    createdAt:       serverTimestamp(),
+    updatedAt:       serverTimestamp(),
+  })
+
+  return ref.id
+}
+
+// ----------------------------------------------------------
+// Atualizar status da OS
+// ----------------------------------------------------------
+export async function atualizarStatusOS(
+  os_id:  string,
+  status: StatusOS,
+) {
+  await updateDoc(doc(db, 'ordens_servico', os_id), {
+    status,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+// ----------------------------------------------------------
+// Salvar itens/peças na OS (rascunho)
+// ----------------------------------------------------------
+export async function salvarItensOS(
+  os_id: string,
+  itens: ItemOS[],
+  valor_mao_obra: number,
+) {
+  const valor_pecas = itens.reduce((s, i) => s + i.subtotal, 0)
+  const valor_total = valor_pecas + valor_mao_obra
+
+  await updateDoc(doc(db, 'ordens_servico', os_id), {
+    itens,
+    valor_pecas,
+    valor_mao_obra,
+    valor_total,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+// ----------------------------------------------------------
+// FINALIZAR OS — baixa de estoque + atualização de status
+// Esta é a operação principal com transação atômica.
+// ----------------------------------------------------------
+export async function finalizarOS(params: {
+  os_id:           string
+  oficina_id:      string
+  usuario_id:      string
+  usuario_nome:    string
+  itens:           ItemOS[]
+  valor_mao_obra:  number
+  forma_pagamento: OrdemServico['forma_pagamento']
+  observacoes?:    string
+}): Promise<void> {
+  const {
+    os_id, oficina_id, usuario_id, usuario_nome,
+    itens, valor_mao_obra, forma_pagamento, observacoes,
+  } = params
+
+  // 1. Baixa de estoque (transação atômica)
+  if (itens.length > 0) {
+    await baixarEstoque({
+      oficina_id,
+      usuario_id,
+      usuario_nome,
+      os_id,
+      itens: itens.map(i => ({
+        produto_id: i.produto_id,
+        quantidade: i.quantidade,
+        nome:       i.nome,
+      })),
+    })
+  }
+
+  // 2. Atualiza a OS como concluída
+  const valor_pecas = itens.reduce((s, i) => s + i.subtotal, 0)
+  const valor_total = valor_pecas + valor_mao_obra
+
+  await updateDoc(doc(db, 'ordens_servico', os_id), {
+    status:           'concluida' as StatusOS,
+    itens,
+    valor_pecas,
+    valor_mao_obra,
+    valor_total,
+    forma_pagamento,
+    observacoes_internas: observacoes ?? '',
+    finalizadaAt:    serverTimestamp(),
+    updatedAt:       serverTimestamp(),
+  })
+}

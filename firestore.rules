@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuth()         { return request.auth != null; }
+    function userDoc()        { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isAdmin()        { return isAuth() && userDoc().role == 'admin'; }
+    function oficina()        { return userDoc().oficina_id; }
+    function sameOf(oid)      { return isAuth() && oficina() == oid; }
+    function isAdminOf(oid)   { return isAdmin() && sameOf(oid); }
+
+    match /users/{uid} {
+      allow read:   if isAuth() && (request.auth.uid == uid || isAdmin());
+      allow create: if isAuth() && request.auth.uid == uid;
+      allow update: if isAuth() && (request.auth.uid == uid || isAdmin());
+      allow delete: if false;
+    }
+    match /oficinas/{oid} {
+      allow read:   if isAuth() && (sameOf(oid) || (isAdmin() && resource.data.rede_dono_uid == request.auth.uid));
+      allow create: if isAuth();
+      allow update: if isAdminOf(oid) || (isAdmin() && resource.data.rede_dono_uid == request.auth.uid);
+      allow delete: if false;
+    }
+    match /ordens_servico/{id} {
+      allow read:   if isAuth() && sameOf(resource.data.oficina_id);
+      allow create: if isAuth() && sameOf(request.resource.data.oficina_id);
+      allow update: if isAuth() && sameOf(resource.data.oficina_id) && (isAdmin() || resource.data.mecanico_id == request.auth.uid);
+      allow delete: if isAdminOf(resource.data.oficina_id);
+    }
+    match /orcamentos/{id} {
+      allow read:   if isAuth() && sameOf(resource.data.oficina_id);
+      allow create: if isAuth() && sameOf(request.resource.data.oficina_id);
+      allow update: if isAuth() && sameOf(resource.data.oficina_id);
+      allow delete: if isAdminOf(resource.data.oficina_id);
+    }
+    match /agendamentos/{id} {
+      allow read:   if isAuth() && sameOf(resource.data.oficina_id);
+      allow create: if isAuth() && sameOf(request.resource.data.oficina_id);
+      allow update: if isAuth() && sameOf(resource.data.oficina_id);
+      allow delete: if isAdminOf(resource.data.oficina_id);
+    }
+    match /estoque/{id} {
+      allow read:   if isAuth() && sameOf(resource.data.oficina_id);
+      allow create: if isAdminOf(request.resource.data.oficina_id);
+      allow update: if isAuth() && sameOf(resource.data.oficina_id);
+      allow delete: if isAdminOf(resource.data.oficina_id);
+    }
+    match /movimentacoes_estoque/{id} {
+      allow read:   if isAuth() && sameOf(resource.data.oficina_id);
+      allow create: if isAuth() && sameOf(request.resource.data.oficina_id);
+      allow update: if false;
+      allow delete: if false;
+    }
+    match /clientes/{id} {
+      allow read:   if isAuth() && sameOf(resource.data.oficina_id);
+      allow create: if isAuth() && sameOf(request.resource.data.oficina_id);
+      allow update: if isAuth() && sameOf(resource.data.oficina_id);
+      allow delete: if isAdminOf(resource.data.oficina_id);
+    }
+    match /veiculos/{id} {
+      allow read:   if isAuth() && sameOf(resource.data.oficina_id);
+      allow create: if isAuth() && sameOf(request.resource.data.oficina_id);
+      allow update: if isAuth() && sameOf(resource.data.oficina_id);
+      allow delete: if isAdminOf(resource.data.oficina_id);
+    }
+    match /avaliacoes/{id} {
+      allow read:   if true;
+      allow create: if true;
+      allow update: if isAuth() && sameOf(resource.data.oficina_id);
+      allow delete: if isAdminOf(resource.data.oficina_id);
+    }
+  }
+}
