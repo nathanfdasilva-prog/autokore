@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Trash2, AlertTriangle, CheckCircle,
-  DollarSign, FileText, Car, Bike,
+  DollarSign, FileText, Car, Bike, Package,
 } from 'lucide-react'
 import BuscaPecas from './BuscaPecas'
 import { criarOS, salvarItensOS, finalizarOS } from '@/lib/hooks/useOS'
