@@ -2,7 +2,7 @@ import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc,
   deleteDoc, query, where, orderBy, limit, onSnapshot,
   serverTimestamp, runTransaction, increment,
-  DocumentData, Timestamp,
+  DocumentData, Timestamp, FieldValue,
 } from 'firebase/firestore'
 import { db } from './config'
 
@@ -28,7 +28,7 @@ export function docToData<T>(snap: DocumentData): T {
 }
 
 export {
-  serverTimestamp, increment, runTransaction,
+  serverTimestamp, increment, runTransaction, FieldValue,
   collection, doc, query, where, orderBy,
   limit, onSnapshot, addDoc, updateDoc,
   getDocs, getDoc, deleteDoc, Timestamp, db

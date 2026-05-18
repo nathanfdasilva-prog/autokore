@@ -186,7 +186,7 @@ export default function OrcamentoForm() {
         <div className="relative">
           <input
             value={termoPeca}
-            onChange={e => { setTermo(e.target.value); setshowResultados(e.target.value.length >= 2) }}
+            onChange={e => { setTermo(e.target.value); setShowResultados(e.target.value.length >= 2) }}
             className="input-base"
             placeholder="🔍 Buscar peça no estoque..."
           />
