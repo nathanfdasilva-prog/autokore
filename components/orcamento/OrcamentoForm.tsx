@@ -39,7 +39,7 @@ export default function OrcamentoForm() {
   // Busca de peças
   const [termoPeca,      setTermo]     = useState('')
   const { resultados }                 = useBuscaPecas(termoPeca)
-  const [showResultados, setShowRes]   = useState(false)
+  const [showResultados, setShowResultados]   = useState(false)
 
   const [salvando,  setSalvando]  = useState(false)
   const [sucesso,   setSucesso]   = useState<string | null>(null)
@@ -63,7 +63,7 @@ export default function OrcamentoForm() {
       }])
     }
     setTermo('')
-    setShowRes(false)
+    setShowResultados(false)
   }
 
   function adicionarServico() {
@@ -186,11 +186,11 @@ export default function OrcamentoForm() {
         <div className="relative">
           <input
             value={termoPeca}
-            onChange={e => { setTermo(e.target.value); setShowRes(e.target.value.length >= 2) }}
+            onChange={e => { setTermo(e.target.value); setshowResultados(e.target.value.length >= 2) }}
             className="input-base"
             placeholder="🔍 Buscar peça no estoque..."
           />
-          {showRes && resultados.length > 0 && (
+          {showResultados && resultados.length > 0 && (
             <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
               {resultados.map(item => (
                 <button key={item.id} type="button" onClick={() => adicionarPeca(item)}
