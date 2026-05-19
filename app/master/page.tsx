@@ -92,7 +92,13 @@ export default function MasterPage() {
     router.replace('/login')
   }
 
-  if (!perfil || perfil.email !== MASTER_EMAIL) return null
+  if (!perfil) return (
+  <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+)
+
+if (perfil.email !== MASTER_EMAIL) return null
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
