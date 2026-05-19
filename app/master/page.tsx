@@ -29,26 +29,27 @@ interface Stats {
 }
 
 export default function MasterPage() {
-  const { perfil } = useAuth()
+  const { perfil, loading } = useAuth()
   const router = useRouter()
   const [oficinas, setOficinas] = useState<Oficina[]>([])
   const [stats, setStats] = useState<Record<string, Stats>>({})
-  const [loading, setLoading] = useState(true)
+  const [loadingDados, setLoadingDados] = useState(true)
   const [acao, setAcao] = useState<string | null>(null)
 
   useEffect(() => {
-    if (perfil && perfil.email !== MASTER_EMAIL) {
+    if (!loading && perfil && perfil.email !== MASTER_EMAIL) {
       router.replace('/dashboard')
     }
-  }, [perfil, router])
+  }, [perfil, loading, router])
 
   useEffect(() => {
-    if (!perfil || perfil.email !== MASTER_EMAIL) return
-    carregarDados()
-  }, [perfil])
+    if (!loading && perfil && perfil.email === MASTER_EMAIL) {
+      carregarDados()
+    }
+  }, [perfil, loading])
 
   async function carregarDados() {
-    setLoading(true)
+    setLoadingDados(true)
     try {
       const snap = await getDocs(collection(db, 'oficinas'))
       const lista = snap.docs.map(d => ({ id: d.id, ...d.data() } as Oficina))
@@ -72,7 +73,7 @@ export default function MasterPage() {
       })
       setStats(statsMap)
     } catch (e) { console.error(e) }
-    finally { setLoading(false) }
+    finally { setLoadingDados(false) }
   }
 
   async function toggleBloqueio(oficina: Oficina) {
@@ -92,13 +93,15 @@ export default function MasterPage() {
     router.replace('/login')
   }
 
-  if (!perfil) return (
-  <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-    <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-  </div>
-)
+  // Aguarda Firebase carregar
+  if (loading) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
-if (perfil.email !== MASTER_EMAIL) return null
+  // Não é o master
+  if (!perfil || perfil.email !== MASTER_EMAIL) return null
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -144,7 +147,7 @@ if (perfil.email !== MASTER_EMAIL) return null
 
         <h2 className="text-sm font-semibold text-gray-300 mb-3">Oficinas Cadastradas</h2>
 
-        {loading ? (
+        {loadingDados ? (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
           </div>
