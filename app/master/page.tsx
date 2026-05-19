@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/context/AuthContext'
-import { collection, getDocs, updateDoc, doc, db, query, orderBy } from '@/lib/firebase/firestore'
+import { collection, getDocs, updateDoc, doc, db } from '@/lib/firebase/firestore'
 import { Building2, Shield, ShieldOff, ClipboardList, LogOut, RefreshCw } from 'lucide-react'
 import { logout } from '@/lib/firebase/auth'
 
@@ -96,44 +96,47 @@ export default function MasterPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
       <div className="bg-gray-900 border-b border-gray-800 px-4 md:px-6 py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg md:text-xl font-bold text-orange-400">⚡ AutoKore Master</h1>
+          <h1 className="text-lg md:text-xl font-bold text-orange-400">AutoKore Master</h1>
           <p className="text-xs text-gray-400">Painel de controle exclusivo</p>
         </div>
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-3">
           <button onClick={carregarDados} className="text-gray-400 hover:text-white transition p-1">
             <RefreshCw size={16} />
           </button>
           <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-400 transition">
-            <LogOut size={14} /> Sair
+            <LogOut size={14} />
+            Sair
           </button>
         </div>
       </div>
 
       <div className="p-4 md:p-6">
-        {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {[
-            { label: 'Total Oficinas', value: oficinas.length, icon: <Building2 size={20} />, color: 'text-blue-400' },
-            { label: 'Ativas', value: oficinas.filter(o => !o.bloqueada).length, icon: <Shield size={20} />, color: 'text-green-400' },
-            { label: 'Bloqueadas', value: oficinas.filter(o => o.bloqueada).length, icon: <ShieldOff size={20} />, color: 'text-red-400' },
-            { label: 'Total OS', value: Object.values(stats).reduce((s, v) => s + v.os, 0), icon: <ClipboardList size={20} />, color: 'text-orange-400' },
-          ].map(kpi => (
-            <div key={kpi.label} className="bg-gray-900 border border-gray-800 rounded-xl p-3 md:p-4">
-              <div className={`${kpi.color} mb-2`}>{kpi.icon}</div>
-              <p className="text-xl md:text-2xl font-bold text-white">{kpi.value}</p>
-              <p className="text-xs text-gray-400">{kpi.label}</p>
-            </div>
-          ))}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <Building2 size={20} className="text-blue-400 mb-2" />
+            <p className="text-2xl font-bold">{oficinas.length}</p>
+            <p className="text-xs text-gray-400">Total Oficinas</p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <Shield size={20} className="text-green-400 mb-2" />
+            <p className="text-2xl font-bold">{oficinas.filter(o => !o.bloqueada).length}</p>
+            <p className="text-xs text-gray-400">Ativas</p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <ShieldOff size={20} className="text-red-400 mb-2" />
+            <p className="text-2xl font-bold">{oficinas.filter(o => o.bloqueada).length}</p>
+            <p className="text-xs text-gray-400">Bloqueadas</p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <ClipboardList size={20} className="text-orange-400 mb-2" />
+            <p className="text-2xl font-bold">{Object.values(stats).reduce((s, v) => s + v.os, 0)}</p>
+            <p className="text-xs text-gray-400">Total OS</p>
+          </div>
         </div>
 
-        {/* Lista */}
-        <h2 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-          <Building2 size={15} className="text-orange-400" />
-          Todas as Oficinas Cadastradas
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">Oficinas Cadastradas</h2>
 
         {loading ? (
           <div className="flex justify-center py-16">
@@ -150,22 +153,48 @@ export default function MasterPage() {
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-semibold text-white">{oficina.nome || 'Sem nome'}</h3>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${oficina.bloqueada ? 'bg-red-900 text-red-300' : 'bg-green-900 text-green-300'}`}>
-                        {oficina.bloqueada ? '🔒 BLOQUEADA' : '✅ ATIVA'}
+                        {oficina.bloqueada ? 'BLOQUEADA' : 'ATIVA'}
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 mb-2">{oficina.email_dono}</p>
                     <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-3">
-                      {oficina.cidade && <span>📍 {oficina.cidade}/{oficina.estado}</span>}
-                      {oficina.telefone && <span>📞 {oficina.telefone}</span>}
-                      <span>🆔 {oficina.id.substring(0, 8)}...</span>
+                      {oficina.cidade && <span>{oficina.cidade}/{oficina.estado}</span>}
+                      {oficina.telefone && <span>{oficina.telefone}</span>}
                     </div>
                     {stats[oficina.id] && (
                       <div className="flex gap-4">
-                        {[
-                          { label: 'OS', value: stats[oficina.id].os, icon: '🔧' },
-                          { label: 'Agend.', value: stats[oficina.id].agendamentos, icon: '📅' },
-                          { label: 'Clientes', value: stats[oficina.id].clientes, icon: '👤' },
-                          { label: 'Equipe', value: stats[oficina.id].mecanicos, icon: '👥' },
-                        ].map(s => (
-                          <div key={s.label} className="text-center">
-                            <p className="text-sm font-bold text-white">{s.icon} {s.value}</p>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-white">{stats[oficina.id].os}</p>
+                          <p className="text-[10px] text-gray-500">OS</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-white">{stats[oficina.id].agendamentos}</p>
+                          <p className="text-[10px] text-gray-500">Agend.</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-white">{stats[oficina.id].clientes}</p>
+                          <p className="text-[10px] text-gray-500">Clientes</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-white">{stats[oficina.id].mecanicos}</p>
+                          <p className="text-[10px] text-gray-500">Equipe</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => toggleBloqueio(oficina)}
+                    disabled={acao === oficina.id}
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition flex-shrink-0 ${oficina.bloqueada ? 'bg-green-800 hover:bg-green-700 text-green-200' : 'bg-red-800 hover:bg-red-700 text-red-200'}`}
+                  >
+                    {acao === oficina.id ? '...' : oficina.bloqueada ? 'Desbloquear' : 'Bloquear'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
