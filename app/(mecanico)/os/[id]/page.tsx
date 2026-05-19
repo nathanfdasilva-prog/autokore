@@ -1,10 +1,4 @@
 'use client'
-// ============================================================
-// DETALHE DA OS v2 — app/(mecanico)/os/[id]/page.tsx
-// Versão atualizada com botões de WhatsApp integrados.
-// ============================================================
-
-import { use } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -27,8 +21,8 @@ const STATUS_CLS: Record<StatusOS, string> = {
   aguardando_pecas: 'badge badge-gray', concluida: 'badge badge-green', cancelada: 'badge badge-red',
 }
 
-export default function OSDetalhePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id }              = use(params)
+export default function OSDetalhePage({ params }: { params: { id: string } }) {
+  const { id }              = params
   const { os, loading }     = useOS(id)
   const { perfil, isAdmin } = useAuth()
 
@@ -54,7 +48,6 @@ export default function OSDetalhePage({ params }: { params: Promise<{ id: string
       </div>
 
       <div className="space-y-4">
-        {/* Cliente */}
         <div className="card">
           <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             {os.tipo_veiculo === 'moto' ? <Bike size={16} className="text-orange-500" /> : <Car size={16} className="text-orange-500" />}
@@ -75,21 +68,18 @@ export default function OSDetalhePage({ params }: { params: Promise<{ id: string
           )}
         </div>
 
-        {/* Serviço */}
         <div className="card">
           <h2 className="text-sm font-semibold text-gray-700 mb-2">Serviço / Problema</h2>
           <p className="text-sm text-gray-600">{os.descricao_problema}</p>
           {os.observacoes_internas && <div className="mt-3 pt-3 border-t border-gray-100"><p className="text-xs text-gray-400 mb-1">Obs. internas</p><p className="text-sm text-gray-600">{os.observacoes_internas}</p></div>}
         </div>
 
-        {/* Mecânico */}
         <div className="card flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center"><User size={16} className="text-orange-500" /></div>
           <div><p className="text-xs text-gray-400">Mecânico</p><p className="text-sm font-medium text-gray-800">{os.mecanico_nome}</p></div>
           {os.finalizadaAt && <div className="ml-auto text-right"><p className="text-xs text-gray-400">Finalizada em</p><p className="text-sm font-medium text-gray-800">{format(os.finalizadaAt, "dd/MM/yyyy 'às' HH:mm")}</p></div>}
         </div>
 
-        {/* Peças */}
         {os.itens.length > 0 && (
           <div className="card">
             <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2"><Package size={16} className="text-orange-500" />Peças</h2>
@@ -104,7 +94,6 @@ export default function OSDetalhePage({ params }: { params: Promise<{ id: string
           </div>
         )}
 
-        {/* Financeiro */}
         {os.valor_total > 0 && (
           <div className="card">
             <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2"><DollarSign size={16} className="text-orange-500" />Financeiro</h2>
@@ -117,7 +106,6 @@ export default function OSDetalhePage({ params }: { params: Promise<{ id: string
           </div>
         )}
 
-        {/* Ações */}
         {podeEditar && (
           <div className="card">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Alterar status</h2>
