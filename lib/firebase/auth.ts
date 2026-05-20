@@ -2,8 +2,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   GoogleAuthProvider,
   signOut,
   sendPasswordResetEmail,
@@ -21,9 +19,8 @@ import type { Role, Usuario } from '../types'
 
 const googleProvider = new GoogleAuthProvider()
 
-// Detecta se é mobile
-function isMobile() {
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
+export function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
 }
 
 export async function loginComEmail(email: string, senha: string) {
@@ -32,13 +29,6 @@ export async function loginComEmail(email: string, senha: string) {
 }
 
 export async function loginComGoogle() {
-  if (isMobile()) {
-    // Mobile: usa redirect (sem popup)
-    await signInWithRedirect(auth, googleProvider)
-    return null // página vai recarregar
-  }
-
-  // Desktop: usa popup normal
   const cred = await signInWithPopup(auth, googleProvider)
   const user = cred.user
 
@@ -48,7 +38,7 @@ export async function loginComGoogle() {
   if (!snap.exists()) {
     await setDoc(userRef, {
       uid:        user.uid,
-      nome:       user.displayName ?? 'Usuário',
+      nome:       user.displayName ?? 'Usuario',
       email:      user.email,
       role:       'mecanico' as Role,
       oficina_id: '',
@@ -61,34 +51,8 @@ export async function loginComGoogle() {
   return user
 }
 
-// Chama isso na página de login para capturar o resultado do redirect
 export async function capturarRedirectGoogle() {
-  try {
-    const result = await getRedirectResult(auth)
-    if (!result) return null
-
-    const user = result.user
-    const userRef = doc(db, 'users', user.uid)
-    const snap = await getDoc(userRef)
-
-    if (!snap.exists()) {
-      await setDoc(userRef, {
-        uid:        user.uid,
-        nome:       user.displayName ?? 'Usuário',
-        email:      user.email,
-        role:       'mecanico' as Role,
-        oficina_id: '',
-        ativo:      true,
-        avatar_url: user.photoURL ?? '',
-        createdAt:  serverTimestamp(),
-      })
-    }
-
-    return user
-  } catch (e) {
-    console.error(e)
-    return null
-  }
+  return null
 }
 
 export async function registrarUsuario(params: {
