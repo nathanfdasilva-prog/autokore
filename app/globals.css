@@ -11,6 +11,62 @@
     @apply bg-gray-50 text-gray-900 dark:bg-black dark:text-white;
   }
 
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5 {
+    color: #ffffff;
+  }
+
+  .dark p, .dark span, .dark td, .dark th, .dark label {
+    color: inherit;
+  }
+
+  .dark .bg-white {
+    background-color: #111111 !important;
+  }
+
+  .dark .bg-gray-50 {
+    background-color: #0a0a0a !important;
+  }
+
+  .dark .bg-gray-100 {
+    background-color: #1a1a1a !important;
+  }
+
+  .dark .text-gray-800 {
+    color: #ffffff !important;
+  }
+
+  .dark .text-gray-700 {
+    color: #f0f0f0 !important;
+  }
+
+  .dark .text-gray-600 {
+    color: #d0d0d0 !important;
+  }
+
+  .dark .text-gray-500 {
+    color: #a0a0a0 !important;
+  }
+
+  .dark .text-gray-400 {
+    color: #707070 !important;
+  }
+
+  .dark .border-gray-200 {
+    border-color: #2a2a2a !important;
+  }
+
+  .dark .border-gray-100 {
+    border-color: #1a1a1a !important;
+  }
+
+  .dark .hover\:bg-gray-50:hover {
+    background-color: #1a1a1a !important;
+  }
+
+  .dark .hover\:bg-gray-100:hover {
+    background-color: #2a2a2a !important;
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
