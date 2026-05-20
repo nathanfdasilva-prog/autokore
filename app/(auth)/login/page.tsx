@@ -16,7 +16,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     capturarRedirectGoogle().then(user => {
-      if (user) router.replace('/os')
+      if (user) {
+        setTimeout(() => {
+          router.replace('/dashboard')
+        }, 1000)
+      }
     })
   }, [])
 
@@ -39,7 +43,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const user = await loginComGoogle()
-      if (user) router.replace('/os')
+      if (user) router.replace('/dashboard')
     } catch (err: any) {
       setErro(traduzirErroFirebase(err.code))
       setLoading(false)
@@ -54,7 +58,7 @@ export default function LoginPage() {
             AutoKore
             <span className="text-gray-700 font-normal">.app</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Gestão inteligente de oficinas</p>
+          <p className="text-sm text-gray-500 mt-1">Gestao inteligente de oficinas</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
