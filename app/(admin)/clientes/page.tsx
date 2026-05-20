@@ -1,14 +1,9 @@
 'use client'
-// ============================================================
-// CLIENTES — app/(admin)/clientes/page.tsx
-// Lista, busca, cadastro e histórico completo por cliente.
-// ============================================================
-
 import { useState } from 'react'
 import {
   Search, Plus, Users, Car, Phone,
   X, Save, ChevronRight, Clock,
-  Wrench, DollarSign,
+  Wrench, Edit2,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -18,6 +13,7 @@ import {
 } from '@/lib/hooks/useClientes'
 import { BotaoWhatsApp } from '@/components/whatsapp/BotoesWhatsApp'
 import { useAuth } from '@/lib/context/AuthContext'
+import { doc, updateDoc, db } from '@/lib/firebase/firestore'
 import type { Cliente, StatusOS } from '@/lib/types'
 
 const STATUS_CLS: Record<StatusOS, string> = {
@@ -33,20 +29,23 @@ const STATUS_LABEL: Record<StatusOS, string> = {
 }
 
 export default function ClientesPage() {
-  const { perfil }           = useAuth()
+  const { perfil }            = useAuth()
   const { clientes, loading } = useClientes()
 
-  const [busca,          setBusca]          = useState('')
-  const [clienteSel,     setClienteSel]     = useState<Cliente | null>(null)
-  const [modalCliente,   setModalCliente]   = useState(false)
-  const [modalVeiculo,   setModalVeiculo]   = useState(false)
+  const [busca,        setBusca]        = useState('')
+  const [clienteSel,   setClienteSel]   = useState<Cliente | null>(null)
+  const [modalCliente, setModalCliente] = useState(false)
+  const [modalVeiculo, setModalVeiculo] = useState(false)
+  const [modalEditar,  setModalEditar]  = useState(false)
 
-  // Form novo cliente
-  const [formCli, setFormCli] = useState({ nome: '', whatsapp: '', email: '', cpf: '' })
-  const [salvandoCli, setSalvandoCli]   = useState(false)
-  const [erroCli,     setErroCli]       = useState('')
+  const [formCli,     setFormCli]     = useState({ nome: '', whatsapp: '', email: '', cpf: '' })
+  const [salvandoCli, setSalvandoCli] = useState(false)
+  const [erroCli,     setErroCli]     = useState('')
 
-  // Form novo veículo
+  const [formEditar,     setFormEditar]     = useState({ nome: '', whatsapp: '', email: '', cpf: '' })
+  const [salvandoEditar, setSalvandoEditar] = useState(false)
+  const [erroEditar,     setErroEditar]     = useState('')
+
   const [formVei, setFormVei] = useState({
     marca: '', modelo: '', ano: new Date().getFullYear(),
     placa: '', cor: '', km: 0, tipo: 'carro' as 'carro' | 'moto',
@@ -63,6 +62,36 @@ export default function ClientesPage() {
       (c.cpf ?? '').includes(q)
     )
   })
+
+  function abrirEditar(cliente: Cliente) {
+    setFormEditar({
+      nome:     cliente.nome,
+      whatsapp: cliente.whatsapp,
+      email:    cliente.email    ?? '',
+      cpf:      cliente.cpf     ?? '',
+    })
+    setErroEditar('')
+    setModalEditar(true)
+  }
+
+  async function handleSalvarEdicao() {
+    setErroEditar('')
+    if (!formEditar.nome.trim())     return setErroEditar('Nome é obrigatório.')
+    if (!formEditar.whatsapp.trim()) return setErroEditar('WhatsApp é obrigatório.')
+    if (!clienteSel) return
+    setSalvandoEditar(true)
+    try {
+      await updateDoc(doc(db, 'clientes', clienteSel.id), {
+        nome:     formEditar.nome,
+        whatsapp: formEditar.whatsapp,
+        email:    formEditar.email || '',
+        cpf:      formEditar.cpf   || '',
+      })
+      setClienteSel({ ...clienteSel, ...formEditar })
+      setModalEditar(false)
+    } catch (e: any) { setErroEditar(e.message) }
+    finally { setSalvandoEditar(false) }
+  }
 
   async function handleSalvarCliente() {
     setErroCli('')
@@ -105,13 +134,10 @@ export default function ClientesPage() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Clientes</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {clientes.length} clientes cadastrados
-          </p>
+          <p className="text-sm text-gray-500 mt-0.5">{clientes.length} clientes cadastrados</p>
         </div>
         <button onClick={() => setModalCliente(true)} className="btn-primary flex items-center gap-2">
           <Plus size={16} />Novo cliente
@@ -119,7 +145,6 @@ export default function ClientesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Lista de clientes */}
         <div className="lg:col-span-1">
           <div className="relative mb-3">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -168,7 +193,6 @@ export default function ClientesPage() {
           )}
         </div>
 
-        {/* Painel de detalhe */}
         <div className="lg:col-span-2">
           {!clienteSel ? (
             <div className="card flex flex-col items-center justify-center py-20 text-center border-dashed">
@@ -179,10 +203,48 @@ export default function ClientesPage() {
             <ClienteDetalhe
               cliente={clienteSel}
               onAddVeiculo={() => setModalVeiculo(true)}
+              onEditar={() => abrirEditar(clienteSel)}
             />
           )}
         </div>
       </div>
+
+      {/* Modal editar cliente */}
+      {modalEditar && clienteSel && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-gray-800">Editar cliente</h2>
+              <button onClick={() => setModalEditar(false)}><X size={19} className="text-gray-400" /></button>
+            </div>
+            {erroEditar && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{erroEditar}</p>}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Nome *</label>
+                <input value={formEditar.nome} onChange={e => setFormEditar(f => ({ ...f, nome: e.target.value }))} className="input-base" placeholder="João Silva" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp *</label>
+                <input value={formEditar.whatsapp} onChange={e => setFormEditar(f => ({ ...f, whatsapp: e.target.value }))} className="input-base" placeholder="(69) 9 9999-9999" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">E-mail</label>
+                <input type="email" value={formEditar.email} onChange={e => setFormEditar(f => ({ ...f, email: e.target.value }))} className="input-base" placeholder="joao@email.com" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">CPF</label>
+                <input value={formEditar.cpf} onChange={e => setFormEditar(f => ({ ...f, cpf: e.target.value }))} className="input-base" placeholder="000.000.000-00" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setModalEditar(false)} className="btn-ghost flex-1">Cancelar</button>
+              <button onClick={handleSalvarEdicao} disabled={salvandoEditar} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                <Save size={14} />{salvandoEditar ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal novo cliente */}
       {modalCliente && (
@@ -286,25 +348,23 @@ export default function ClientesPage() {
   )
 }
 
-// ---- Painel de detalhe do cliente ----
 function ClienteDetalhe({
-  cliente,
-  onAddVeiculo,
+  cliente, onAddVeiculo, onEditar,
 }: {
   cliente: Cliente
   onAddVeiculo: () => void
+  onEditar: () => void
 }) {
-  const { veiculos }         = useVeiculosCliente(cliente.id)
-  const { ordens }           = useOSCliente(cliente.nome)
-  const [abaAtiva, setAba]   = useState<'veiculos' | 'historico'>('veiculos')
+  const { veiculos }       = useVeiculosCliente(cliente.id)
+  const { ordens }         = useOSCliente(cliente.nome)
+  const [abaAtiva, setAba] = useState<'veiculos' | 'historico'>('veiculos')
 
-  const totalGasto    = ordens.filter(o => o.status === 'concluida').reduce((s, o) => s + o.valor_total, 0)
-  const totalOS       = ordens.length
-  const ultimaVisita  = ordens[0]?.createdAt
+  const totalGasto   = ordens.filter(o => o.status === 'concluida').reduce((s, o) => s + o.valor_total, 0)
+  const totalOS      = ordens.length
+  const ultimaVisita = ordens[0]?.createdAt
 
   return (
     <div className="space-y-4">
-      {/* Header cliente */}
       <div className="card">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
@@ -318,24 +378,28 @@ function ClienteDetalhe({
                   <Phone size={11} />{cliente.whatsapp}
                 </span>
               )}
-              {cliente.email && (
-                <span className="text-xs text-gray-500">{cliente.email}</span>
-              )}
-              {cliente.cpf && (
-                <span className="text-xs text-gray-500">CPF: {cliente.cpf}</span>
-              )}
+              {cliente.email && <span className="text-xs text-gray-500">{cliente.email}</span>}
+              {cliente.cpf && <span className="text-xs text-gray-500">CPF: {cliente.cpf}</span>}
             </div>
           </div>
-          {cliente.whatsapp && (
-            <BotaoWhatsApp
-              numero={cliente.whatsapp}
-              mensagem={`Olá, ${cliente.nome}! Como posso ajudar?`}
-              variante="icon"
-            />
-          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onEditar}
+              className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-orange-500"
+              title="Editar cliente"
+            >
+              <Edit2 size={16} />
+            </button>
+            {cliente.whatsapp && (
+              <BotaoWhatsApp
+                numero={cliente.whatsapp}
+                mensagem={`Olá, ${cliente.nome}! Como posso ajudar?`}
+                variante="icon"
+              />
+            )}
+          </div>
         </div>
 
-        {/* KPIs do cliente */}
         <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-100">
           <div className="text-center">
             <p className="text-xl font-bold text-gray-800">{totalOS}</p>
@@ -349,16 +413,13 @@ function ClienteDetalhe({
           </div>
           <div className="text-center">
             <p className="text-sm font-bold text-gray-800">
-              {ultimaVisita
-                ? format(ultimaVisita, 'dd/MM/yy', { locale: ptBR })
-                : '—'}
+              {ultimaVisita ? format(ultimaVisita, 'dd/MM/yy', { locale: ptBR }) : '—'}
             </p>
             <p className="text-xs text-gray-400">Última visita</p>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex bg-gray-100 rounded-lg p-0.5">
         <button onClick={() => setAba('veiculos')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition ${abaAtiva === 'veiculos' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}>
@@ -370,7 +431,6 @@ function ClienteDetalhe({
         </button>
       </div>
 
-      {/* Aba veículos */}
       {abaAtiva === 'veiculos' && (
         <div className="space-y-2">
           <button onClick={onAddVeiculo}
@@ -379,21 +439,17 @@ function ClienteDetalhe({
           </button>
           {veiculos.map(v => (
             <div key={v.id} className="card">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center">
-                    <span className="text-lg">{v.tipo === 'moto' ? '🏍' : '🚗'}</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">
-                      {v.marca} {v.modelo} {v.ano}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      <span className="font-mono font-bold">{v.placa}</span>
-                      {v.cor && ` · ${v.cor}`}
-                      {v.km && ` · ${v.km.toLocaleString('pt-BR')} km`}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center">
+                  <span className="text-lg">{v.tipo === 'moto' ? '🏍' : '🚗'}</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{v.marca} {v.modelo} {v.ano}</p>
+                  <p className="text-xs text-gray-400">
+                    <span className="font-mono font-bold">{v.placa}</span>
+                    {v.cor && ` · ${v.cor}`}
+                    {v.km && ` · ${v.km.toLocaleString('pt-BR')} km`}
+                  </p>
                 </div>
               </div>
             </div>
@@ -404,7 +460,6 @@ function ClienteDetalhe({
         </div>
       )}
 
-      {/* Aba histórico */}
       {abaAtiva === 'historico' && (
         <div className="space-y-2">
           {ordens.length === 0 ? (
@@ -415,30 +470,23 @@ function ClienteDetalhe({
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-gray-400">
-                        #{String(os.numero).padStart(4, '0')}
-                      </span>
+                      <span className="text-xs font-mono text-gray-400">#{String(os.numero).padStart(4, '0')}</span>
                       <span className={STATUS_CLS[os.status]}>{STATUS_LABEL[os.status]}</span>
                     </div>
                     <p className="text-sm font-semibold text-gray-800 mt-0.5">{os.veiculo}</p>
                     <p className="text-xs font-mono text-gray-400">{os.placa}</p>
                   </div>
                   {os.valor_total > 0 && (
-                    <p className="text-sm font-bold text-orange-500 flex-shrink-0">
-                      R${os.valor_total.toFixed(2)}
-                    </p>
+                    <p className="text-sm font-bold text-orange-500 flex-shrink-0">R${os.valor_total.toFixed(2)}</p>
                   )}
                 </div>
                 <p className="text-xs text-gray-600 mb-2 line-clamp-2">{os.descricao_problema}</p>
                 <div className="flex items-center gap-3 text-xs text-gray-400 pt-2 border-t border-gray-100">
                   <span className="flex items-center gap-1">
-                    <Clock size={11} />
-                    {format(os.createdAt, "dd/MM/yyyy", { locale: ptBR })}
+                    <Clock size={11} />{format(os.createdAt, "dd/MM/yyyy", { locale: ptBR })}
                   </span>
                   <span>{os.mecanico_nome}</span>
-                  {os.itens.length > 0 && (
-                    <span>{os.itens.length} peças</span>
-                  )}
+                  {os.itens.length > 0 && <span>{os.itens.length} peças</span>}
                 </div>
               </div>
             ))
