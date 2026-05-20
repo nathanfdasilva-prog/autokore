@@ -1,235 +1,162 @@
 'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useState } from 'react'
-import './landing.css'
+import { loginComEmail, loginComGoogle, capturarRedirectGoogle, isIOS } from '@/lib/firebase/auth'
+import { useAuth } from '@/lib/context/AuthContext'
 
-export default function LandingPage() {
-  const [nome, setNome] = useState('')
-  const [tel, setTel] = useState('')
-  const [msg, setMsg] = useState('🔒 Seus dados são privados. Não enviamos spam.')
+export default function LoginPage() {
+  const router = useRouter()
+  const { isAdmin } = useAuth()
+  const [email,   setEmail]   = useState('')
+  const [senha,   setSenha]   = useState('')
+  const [erro,    setErro]    = useState('')
+  const [loading, setLoading] = useState(false)
+  const [iosDevice, setIosDevice] = useState(false)
 
-  function capturarLead() {
-    if (!nome || !tel) { setMsg('⚠️ Preencha seu nome e WhatsApp.'); return }
-    setMsg(`✅ Obrigado, ${nome}! Te avisaremos em breve.`)
-    setNome(''); setTel('')
+  useEffect(() => {
+    setIosDevice(isIOS())
+    capturarRedirectGoogle().then(user => {
+      if (user) setTimeout(() => router.replace('/dashboard'), 1000)
+    })
+  }, [])
+
+  async function handleEmailLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setErro('')
+    setLoading(true)
+    try {
+      await loginComEmail(email, senha)
+      router.replace(isAdmin ? '/dashboard' : '/os')
+    } catch (err: any) {
+      setErro(traduzirErroFirebase(err.code))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleGoogleLogin() {
+    if (iosDevice) {
+      setErro('No iPhone/Safari use e-mail e senha para entrar.')
+      return
+    }
+    setErro('')
+    setLoading(true)
+    try {
+      const user = await loginComGoogle()
+      if (user) router.replace('/dashboard')
+    } catch (err: any) {
+      setErro(traduzirErroFirebase(err.code))
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="lp-wrap">
-      <nav className="lp-nav">
-        <div className="lp-nav-inner">
-          <div className="lp-logo"><span>Auto</span>Kore</div>
-          <div className="lp-nav-links">
-            <a href="#funcionalidades">Funcionalidades</a>
-            <a href="#como-funciona">Como funciona</a>
-            <a href="#planos">Planos</a>
-            <Link href="/login" className="btn-nav">Entrar</Link>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-orange-500">
+            AutoKore
+            <span className="text-gray-700 font-normal">.app</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Gestao inteligente de oficinas</p>
         </div>
-      </nav>
 
-      <section className="lp-hero">
-        <div className="lp-hero-inner">
-          <div>
-            <div className="lp-badge"><span className="badge-dot" />Novo: Avaliações NPS integradas</div>
-            <h1 className="lp-h1">Gestão completa para sua <span>oficina mecânica</span></h1>
-            <p className="lp-sub">Do agendamento ao faturamento. Controle ordens de serviço, estoque, equipe e clientes em um só lugar.</p>
-            <div className="lp-btns">
-              <Link href="/registro" className="btn-primary">Começar grátis →</Link>
-              <a href="#planos" className="btn-secondary">Ver planos</a>
-            </div>
-            <div className="lp-trust">
-              <div className="trust-avatars">
-                <span>KL</span><span>MS</span><span>RB</span><span>+</span>
-              </div>
-              <div className="trust-text"><strong>Oficinas ativas</strong> usando o AutoKore hoje</div>
-            </div>
-          </div>
-          <div className="lp-mockup-wrap">
-            <div className="lp-mockup">
-              <div className="mockup-bar">
-                <div className="dot dot-r" /><div className="dot dot-y" /><div className="dot dot-g" />
-                <div className="mockup-url">autokore.vercel.app/dashboard</div>
-              </div>
-              <div className="mockup-body">
-                <div className="dash-header">
-                  <div className="dash-title">Dashboard</div>
-                  <div className="dash-date">Maio 2026</div>
-                </div>
-                <div className="kpis">
-                  <div className="kpi"><div className="kpi-label">OS Abertas</div><div className="kpi-val orange">12</div><div className="kpi-change">↑ 3 hoje</div></div>
-                  <div className="kpi"><div className="kpi-label">Faturamento</div><div className="kpi-val">R$18k</div><div className="kpi-change">↑ 12%</div></div>
-                  <div className="kpi"><div className="kpi-label">Clientes</div><div className="kpi-val">48</div><div className="kpi-change">↑ 5</div></div>
-                  <div className="kpi"><div className="kpi-label">NPS</div><div className="kpi-val orange">94</div><div className="kpi-change">Excelente</div></div>
-                </div>
-                <div className="os-list">
-                  <div className="os-item">
-                    <div className="os-info"><span className="os-name">Joao Pereira</span><span className="os-car">Corolla 2022 - Troca de oleo</span></div>
-                    <span className="os-badge badge-green">Concluido</span>
-                    <span className="os-val">R$320</span>
-                  </div>
-                  <div className="os-item">
-                    <div className="os-info"><span className="os-name">Maria Santos</span><span className="os-car">HB20 2021 - Revisao</span></div>
-                    <span className="os-badge badge-yellow">Em andamento</span>
-                    <span className="os-val">R$580</span>
-                  </div>
-                  <div className="os-item">
-                    <div className="os-info"><span className="os-name">Carlos Lima</span><span className="os-car">Onix 2023 - Freios</span></div>
-                    <span className="os-badge badge-blue">Agendado</span>
-                    <span className="os-val">R$450</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="floating-card">
-              <div className="fc-label">Faturamento do mes</div>
-              <div className="fc-val">R$18.420</div>
-              <div className="fc-sub">↑ 12% vs mes anterior</div>
-            </div>
-          </div>
-        </div>
-      </section>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-5">Entrar na sua conta</h2>
 
-      <div className="logos-section">
-        <div className="logos-inner">
-          <div className="logos-label">Tecnologia confiavel por baixo</div>
-          <div className="logos-row">
-            <div className="logo-item">Firebase</div>
-            <div className="logo-item">Next.js</div>
-            <div className="logo-item">Vercel</div>
-            <div className="logo-item">WhatsApp API</div>
-            <div className="logo-item">Google Auth</div>
+          {iosDevice ? (
+            <div className="mb-5 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-xs text-orange-700">
+              No iPhone, use e-mail e senha para entrar.
+            </div>
+          ) : (
+            <button
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 mb-5"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continuar com Google
+            </button>
+          )}
+
+          {!iosDevice && (
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400">ou entre com e-mail</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+          )}
+
+          <form onSubmit={handleEmailLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">E-mail</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                placeholder="seu@email.com"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Senha</label>
+              <input
+                type="password"
+                value={senha}
+                onChange={e => setSenha(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition"
+              />
+            </div>
+
+            {erro && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {erro}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2.5 rounded-lg text-sm transition disabled:opacity-50"
+            >
+              {loading ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+
+          <div className="mt-4 flex justify-between text-xs">
+            <Link href="/recuperar-senha" className="text-orange-500 hover:underline">
+              Esqueceu a senha?
+            </Link>
+            <Link href="/registro" className="text-gray-500 hover:text-gray-700">
+              Criar conta
+            </Link>
           </div>
         </div>
       </div>
-
-      <section className="lp-section" id="funcionalidades">
-        <div className="lp-section-inner">
-          <div className="section-label">Funcionalidades</div>
-          <h2 className="section-title">Tudo que sua oficina precisa</h2>
-          <p className="section-sub">Desenvolvido para oficinas mecanicas brasileiras. Sem complicacao, sem planilha, sem papel.</p>
-          <div className="features-grid">
-            {[
-              {icon:'🔧',title:'Ordens de Servico',desc:'Crie, acompanhe e finalize OS digitalmente. Historico completo por veiculo e cliente.'},
-              {icon:'📅',title:'Agendamentos',desc:'Calendario visual para organizar sua agenda. Evite conflitos e mantenha clientes informados.'},
-              {icon:'📦',title:'Estoque de Pecas',desc:'Controle entradas e saidas. Alertas de estoque minimo. Historico de movimentacoes completo.'},
-              {icon:'💰',title:'Faturamento',desc:'Relatorios financeiros detalhados. Acompanhe receita, ticket medio e crescimento mes a mes.'},
-              {icon:'⭐',title:'NPS e Avaliacoes',desc:'Colete feedback dos clientes automaticamente apos cada servico. Melhore continuamente.'},
-              {icon:'👥',title:'Gestao de Equipe',desc:'Cadastre mecanicos, acompanhe desempenho e controle o acesso de cada colaborador.'},
-            ].map((f,i) => (
-              <div className="feat-card" key={i}>
-                <div className="feat-icon">{f.icon}</div>
-                <div className="feat-title">{f.title}</div>
-                <div className="feat-desc">{f.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="lp-how" id="como-funciona">
-        <div className="lp-section-inner">
-          <div className="section-label">Como funciona</div>
-          <h2 className="section-title">Comece em minutos</h2>
-          <div className="steps">
-            {[
-              {n:'1',title:'Crie sua conta',desc:'Cadastro gratuito em menos de 2 minutos. Sem cartao de credito.'},
-              {n:'2',title:'Configure sua oficina',desc:'Adicione seus dados, equipe e personalize o sistema.'},
-              {n:'3',title:'Cadastre clientes',desc:'Adicione clientes e veiculos facilmente.'},
-              {n:'4',title:'Gerencie tudo',desc:'OS, estoque, agenda e financeiro em um so lugar.'},
-            ].map((s,i) => (
-              <div className="step" key={i}>
-                <div className="step-num">{s.n}</div>
-                <div className="step-title">{s.title}</div>
-                <div className="step-desc">{s.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="lp-section" id="planos">
-        <div className="lp-section-inner">
-          <div className="section-label">Planos</div>
-          <h2 className="section-title">Simples e transparente</h2>
-          <p className="section-sub">Comece gratis, cresca no seu ritmo. Sem taxas escondidas.</p>
-          <div className="pricing-grid">
-            <div className="plan">
-              <div className="plan-name">Gratis</div>
-              <div className="plan-price">R$0<span>/mes</span></div>
-              <div className="plan-sub">Para comecar a organizar</div>
-              <ul className="plan-features">
-                <li>Ate 30 OS por mes</li>
-                <li>1 usuario</li>
-                <li>Clientes e veiculos</li>
-                <li>Agendamentos basicos</li>
-                <li className="off">Estoque de pecas</li>
-                <li className="off">Relatorios financeiros</li>
-                <li className="off">Suporte prioritario</li>
-              </ul>
-              <Link href="/registro" className="btn-plan btn-plan-outline">Criar conta gratis</Link>
-            </div>
-            <div className="plan popular">
-              <div className="popular-badge">Mais popular</div>
-              <div className="plan-name">Profissional</div>
-              <div className="plan-price">R$97<span>/mes</span></div>
-              <div className="plan-sub">Para oficinas em crescimento</div>
-              <ul className="plan-features">
-                <li>OS ilimitadas</li>
-                <li>Ate 5 usuarios</li>
-                <li>Estoque completo</li>
-                <li>Relatorios financeiros</li>
-                <li>NPS e avaliacoes</li>
-                <li>Orcamentos digitais</li>
-                <li className="off">Rede de oficinas</li>
-              </ul>
-              <Link href="/registro" className="btn-plan btn-plan-filled">Comecar agora</Link>
-            </div>
-            <div className="plan">
-              <div className="plan-name">Rede</div>
-              <div className="plan-price">R$247<span>/mes</span></div>
-              <div className="plan-sub">Para redes e franquias</div>
-              <ul className="plan-features">
-                <li>Tudo do Profissional</li>
-                <li>Usuarios ilimitados</li>
-                <li>Multiplas unidades</li>
-                <li>Painel consolidado</li>
-                <li>Relatorios por unidade</li>
-                <li>API de integracao</li>
-                <li>Suporte dedicado</li>
-              </ul>
-              <Link href="/registro" className="btn-plan btn-plan-outline">Falar com vendas</Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="lp-lead">
-        <div className="lead-inner">
-          <div className="section-label" style={{textAlign:'center'}}>Lista de espera</div>
-          <h2 className="section-title">Quer ser avisado das novidades?</h2>
-          <p style={{color:'#9CA3AF',marginTop:'12px'}}>Deixe seu WhatsApp e te avisamos sobre atualizacoes e novos recursos.</p>
-          <div className="lead-form">
-            <input className="lead-input" type="text" placeholder="Seu nome" value={nome} onChange={e => setNome(e.target.value)} />
-            <input className="lead-input" type="tel" placeholder="WhatsApp (11) 99999-9999" value={tel} onChange={e => setTel(e.target.value)} />
-            <button className="btn-primary" onClick={capturarLead}>Quero ser avisado</button>
-          </div>
-          <div className="lead-note">{msg}</div>
-        </div>
-      </section>
-
-      <footer className="lp-footer">
-        <div className="footer-inner">
-          <div className="footer-logo"><span>Auto</span>Kore</div>
-          <div className="footer-links">
-            <a href="#funcionalidades">Funcionalidades</a>
-            <a href="#planos">Planos</a>
-            <Link href="/login">Entrar</Link>
-            <Link href="/registro">Cadastrar</Link>
-          </div>
-          <div className="footer-copy">© 2026 AutoKore. Todos os direitos reservados.</div>
-        </div>
-      </footer>
     </div>
   )
+}
+
+function traduzirErroFirebase(code: string): string {
+  const erros: Record<string, string> = {
+    'auth/user-not-found': 'Nenhum usuario encontrado com este e-mail.',
+    'auth/wrong-password': 'Senha incorreta. Tente novamente.',
+    'auth/invalid-email': 'E-mail invalido.',
+    'auth/user-disabled': 'Esta conta foi desativada.',
+    'auth/too-many-requests': 'Muitas tentativas. Aguarde e tente novamente.',
+    'auth/email-already-in-use': 'Este e-mail ja esta cadastrado.',
+    'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
+    'auth/popup-closed-by-user': 'Login cancelado.',
+    'auth/network-request-failed': 'Erro de conexao. Verifique sua internet.',
+  }
+  return erros[code] ?? 'Erro inesperado. Tente novamente.'
 }
