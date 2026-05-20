@@ -14,7 +14,7 @@ import {
 import { BotaoWhatsApp } from '@/components/whatsapp/BotoesWhatsApp'
 import { useAuth } from '@/lib/context/AuthContext'
 import { doc, updateDoc, db } from '@/lib/firebase/firestore'
-import type { Cliente, StatusOS } from '@/lib/types'
+import type { Cliente, Veiculo, StatusOS } from '@/lib/types'
 
 const STATUS_CLS: Record<StatusOS, string> = {
   aberta:           'badge badge-blue',
@@ -67,8 +67,8 @@ export default function ClientesPage() {
     setFormEditar({
       nome:     cliente.nome,
       whatsapp: cliente.whatsapp,
-      email:    cliente.email    ?? '',
-      cpf:      cliente.cpf     ?? '',
+      email:    cliente.email ?? '',
+      cpf:      cliente.cpf   ?? '',
     })
     setErroEditar('')
     setModalEditar(true)
@@ -155,7 +155,6 @@ export default function ClientesPage() {
               className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition"
             />
           </div>
-
           {loading ? (
             <div className="flex justify-center py-10">
               <div className="w-7 h-7 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -168,17 +167,10 @@ export default function ClientesPage() {
           ) : (
             <div className="space-y-2">
               {clientesFiltrados.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setClienteSel(c)}
-                  className={`w-full text-left card hover:border-orange-200 hover:shadow-sm transition-all ${
-                    clienteSel?.id === c.id ? 'border-orange-400 bg-orange-50' : ''
-                  }`}
-                >
+                <button key={c.id} onClick={() => setClienteSel(c)}
+                  className={`w-full text-left card hover:border-orange-200 hover:shadow-sm transition-all ${clienteSel?.id === c.id ? 'border-orange-400 bg-orange-50' : ''}`}>
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${
-                      clienteSel?.id === c.id ? 'bg-orange-500' : 'bg-gray-400'
-                    }`}>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${clienteSel?.id === c.id ? 'bg-orange-500' : 'bg-gray-400'}`}>
                       {c.nome.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -221,7 +213,7 @@ export default function ClientesPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nome *</label>
-                <input value={formEditar.nome} onChange={e => setFormEditar(f => ({ ...f, nome: e.target.value }))} className="input-base" placeholder="João Silva" />
+                <input value={formEditar.nome} onChange={e => setFormEditar(f => ({ ...f, nome: e.target.value }))} className="input-base" placeholder="Joao Silva" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp *</label>
@@ -258,7 +250,7 @@ export default function ClientesPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nome *</label>
-                <input value={formCli.nome} onChange={e => setFormCli(f => ({ ...f, nome: e.target.value }))} className="input-base" placeholder="João Silva" />
+                <input value={formCli.nome} onChange={e => setFormCli(f => ({ ...f, nome: e.target.value }))} className="input-base" placeholder="Joao Silva" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp *</label>
@@ -283,12 +275,12 @@ export default function ClientesPage() {
         </div>
       )}
 
-      {/* Modal novo veículo */}
+      {/* Modal novo veiculo */}
       {modalVeiculo && clienteSel && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-gray-800">Novo veículo — {clienteSel.nome}</h2>
+              <h2 className="text-base font-bold text-gray-800">Novo veiculo — {clienteSel.nome}</h2>
               <button onClick={() => setModalVeiculo(false)}><X size={19} className="text-gray-400" /></button>
             </div>
             {erroVei && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{erroVei}</p>}
@@ -299,7 +291,7 @@ export default function ClientesPage() {
                   {(['carro','moto'] as const).map(t => (
                     <button key={t} type="button" onClick={() => setFormVei(f => ({ ...f, tipo: t }))}
                       className={`flex-1 py-2 rounded-lg border text-sm font-medium transition ${formVei.tipo === t ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                      {t === 'carro' ? '🚗 Carro' : '🏍 Moto'}
+                      {t === 'carro' ? 'Carro' : 'Moto'}
                     </button>
                   ))}
                 </div>
@@ -359,6 +351,51 @@ function ClienteDetalhe({
   const { ordens }         = useOSCliente(cliente.nome)
   const [abaAtiva, setAba] = useState<'veiculos' | 'historico'>('veiculos')
 
+  const [modalEditarVei,  setModalEditarVei]  = useState(false)
+  const [veiculoSel,      setVeiculoSel]      = useState<Veiculo | null>(null)
+  const [formVeiEdit,     setFormVeiEdit]     = useState({
+    marca: '', modelo: '', ano: 0, placa: '', cor: '', km: 0, tipo: 'carro' as 'carro' | 'moto',
+  })
+  const [salvandoVeiEdit, setSalvandoVeiEdit] = useState(false)
+  const [erroVeiEdit,     setErroVeiEdit]     = useState('')
+
+  function abrirEditarVei(v: Veiculo) {
+    setVeiculoSel(v)
+    setFormVeiEdit({
+      marca:  v.marca,
+      modelo: v.modelo,
+      ano:    v.ano,
+      placa:  v.placa,
+      cor:    v.cor  ?? '',
+      km:     v.km   ?? 0,
+      tipo:   v.tipo,
+    })
+    setErroVeiEdit('')
+    setModalEditarVei(true)
+  }
+
+  async function handleSalvarVeiEdit() {
+    setErroVeiEdit('')
+    if (!formVeiEdit.marca.trim())  return setErroVeiEdit('Marca e obrigatoria.')
+    if (!formVeiEdit.modelo.trim()) return setErroVeiEdit('Modelo e obrigatorio.')
+    if (!formVeiEdit.placa.trim())  return setErroVeiEdit('Placa e obrigatoria.')
+    if (!veiculoSel) return
+    setSalvandoVeiEdit(true)
+    try {
+      await updateDoc(doc(db, 'veiculos', veiculoSel.id), {
+        marca:  formVeiEdit.marca,
+        modelo: formVeiEdit.modelo,
+        ano:    formVeiEdit.ano,
+        placa:  formVeiEdit.placa.toUpperCase(),
+        cor:    formVeiEdit.cor,
+        km:     formVeiEdit.km,
+        tipo:   formVeiEdit.tipo,
+      })
+      setModalEditarVei(false)
+    } catch (e: any) { setErroVeiEdit(e.message) }
+    finally { setSalvandoVeiEdit(false) }
+  }
+
   const totalGasto   = ordens.filter(o => o.status === 'concluida').reduce((s, o) => s + o.valor_total, 0)
   const totalOS      = ordens.length
   const ultimaVisita = ordens[0]?.createdAt
@@ -383,19 +420,11 @@ function ClienteDetalhe({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={onEditar}
-              className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-orange-500"
-              title="Editar cliente"
-            >
+            <button onClick={onEditar} className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-orange-500" title="Editar cliente">
               <Edit2 size={16} />
             </button>
             {cliente.whatsapp && (
-              <BotaoWhatsApp
-                numero={cliente.whatsapp}
-                mensagem={`Olá, ${cliente.nome}! Como posso ajudar?`}
-                variante="icon"
-              />
+              <BotaoWhatsApp numero={cliente.whatsapp} mensagem={`Ola, ${cliente.nome}! Como posso ajudar?`} variante="icon" />
             )}
           </div>
         </div>
@@ -406,16 +435,12 @@ function ClienteDetalhe({
             <p className="text-xs text-gray-400">OS total</p>
           </div>
           <div className="text-center">
-            <p className="text-xl font-bold text-orange-500">
-              R${totalGasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
+            <p className="text-xl font-bold text-orange-500">R${totalGasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
             <p className="text-xs text-gray-400">Total gasto</p>
           </div>
           <div className="text-center">
-            <p className="text-sm font-bold text-gray-800">
-              {ultimaVisita ? format(ultimaVisita, 'dd/MM/yy', { locale: ptBR }) : '—'}
-            </p>
-            <p className="text-xs text-gray-400">Última visita</p>
+            <p className="text-sm font-bold text-gray-800">{ultimaVisita ? format(ultimaVisita, 'dd/MM/yy', { locale: ptBR }) : '...'}</p>
+            <p className="text-xs text-gray-400">Ultima visita</p>
           </div>
         </div>
       </div>
@@ -423,11 +448,11 @@ function ClienteDetalhe({
       <div className="flex bg-gray-100 rounded-lg p-0.5">
         <button onClick={() => setAba('veiculos')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition ${abaAtiva === 'veiculos' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}>
-          <Car size={14} />Veículos ({veiculos.length})
+          <Car size={14} />Veiculos ({veiculos.length})
         </button>
         <button onClick={() => setAba('historico')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition ${abaAtiva === 'historico' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}>
-          <Wrench size={14} />Histórico ({ordens.length})
+          <Wrench size={14} />Historico ({ordens.length})
         </button>
       </div>
 
@@ -435,27 +460,32 @@ function ClienteDetalhe({
         <div className="space-y-2">
           <button onClick={onAddVeiculo}
             className="w-full card border-dashed border-gray-300 hover:border-orange-300 hover:bg-orange-50 flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-orange-600 transition py-3">
-            <Plus size={15} />Adicionar veículo
+            <Plus size={15} />Adicionar veiculo
           </button>
           {veiculos.map(v => (
             <div key={v.id} className="card">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center">
-                  <span className="text-lg">{v.tipo === 'moto' ? '🏍' : '🚗'}</span>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center">
+                    <span className="text-lg">{v.tipo === 'moto' ? '🏍' : '🚗'}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">{v.marca} {v.modelo} {v.ano}</p>
+                    <p className="text-xs text-gray-400">
+                      <span className="font-mono font-bold">{v.placa}</span>
+                      {v.cor && ` · ${v.cor}`}
+                      {v.km && ` · ${v.km.toLocaleString('pt-BR')} km`}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{v.marca} {v.modelo} {v.ano}</p>
-                  <p className="text-xs text-gray-400">
-                    <span className="font-mono font-bold">{v.placa}</span>
-                    {v.cor && ` · ${v.cor}`}
-                    {v.km && ` · ${v.km.toLocaleString('pt-BR')} km`}
-                  </p>
-                </div>
+                <button onClick={() => abrirEditarVei(v)} className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-orange-500" title="Editar veiculo">
+                  <Edit2 size={15} />
+                </button>
               </div>
             </div>
           ))}
           {veiculos.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Nenhum veículo cadastrado.</p>
+            <p className="text-sm text-gray-400 text-center py-4">Nenhum veiculo cadastrado.</p>
           )}
         </div>
       )}
@@ -482,15 +512,75 @@ function ClienteDetalhe({
                 </div>
                 <p className="text-xs text-gray-600 mb-2 line-clamp-2">{os.descricao_problema}</p>
                 <div className="flex items-center gap-3 text-xs text-gray-400 pt-2 border-t border-gray-100">
-                  <span className="flex items-center gap-1">
-                    <Clock size={11} />{format(os.createdAt, "dd/MM/yyyy", { locale: ptBR })}
-                  </span>
+                  <span className="flex items-center gap-1"><Clock size={11} />{format(os.createdAt, "dd/MM/yyyy", { locale: ptBR })}</span>
                   <span>{os.mecanico_nome}</span>
-                  {os.itens.length > 0 && <span>{os.itens.length} peças</span>}
+                  {os.itens.length > 0 && <span>{os.itens.length} pecas</span>}
                 </div>
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Modal editar veiculo */}
+      {modalEditarVei && veiculoSel && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-gray-800">Editar veiculo</h2>
+              <button onClick={() => setModalEditarVei(false)}><X size={19} className="text-gray-400" /></button>
+            </div>
+            {erroVeiEdit && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{erroVeiEdit}</p>}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+                <div className="flex gap-2">
+                  {(['carro','moto'] as const).map(t => (
+                    <button key={t} type="button" onClick={() => setFormVeiEdit(f => ({ ...f, tipo: t }))}
+                      className={`flex-1 py-2 rounded-lg border text-sm font-medium transition ${formVeiEdit.tipo === t ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                      {t === 'carro' ? 'Carro' : 'Moto'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Marca *</label>
+                  <input value={formVeiEdit.marca} onChange={e => setFormVeiEdit(f => ({ ...f, marca: e.target.value }))} className="input-base" placeholder="VW" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Modelo *</label>
+                  <input value={formVeiEdit.modelo} onChange={e => setFormVeiEdit(f => ({ ...f, modelo: e.target.value }))} className="input-base" placeholder="Gol G5" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Ano</label>
+                  <input type="number" value={formVeiEdit.ano} onChange={e => setFormVeiEdit(f => ({ ...f, ano: Number(e.target.value) }))} className="input-base" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Placa *</label>
+                  <input value={formVeiEdit.placa} onChange={e => setFormVeiEdit(f => ({ ...f, placa: e.target.value.toUpperCase() }))} className="input-base uppercase font-mono" placeholder="ABC-1234" maxLength={8} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Cor</label>
+                  <input value={formVeiEdit.cor} onChange={e => setFormVeiEdit(f => ({ ...f, cor: e.target.value }))} className="input-base" placeholder="Prata" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Km atual</label>
+                  <input type="number" value={formVeiEdit.km} onChange={e => setFormVeiEdit(f => ({ ...f, km: Number(e.target.value) }))} className="input-base" />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setModalEditarVei(false)} className="btn-ghost flex-1">Cancelar</button>
+              <button onClick={handleSalvarVeiEdit} disabled={salvandoVeiEdit} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                <Save size={14} />{salvandoVeiEdit ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
