@@ -1,7 +1,3 @@
-// ============================================================
-// ROOT LAYOUT — app/layout.tsx
-// ============================================================
-
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/lib/context/AuthContext'
@@ -34,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-title" content="AutoKore" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={`${inter.className} bg-gray-50 text-gray-900 antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         <AuthProvider>
           {children}
           <InstallBanner />
