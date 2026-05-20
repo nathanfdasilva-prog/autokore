@@ -1,0 +1,37 @@
+{"users": [
+{
+  "localId": "giq7sxeHmEMpfOe6xUjLQeaghfX2",
+  "email": "kaio_cacoal@hotmail.com",
+  "emailVerified": true,
+  "displayName": "kaio loandre rocha",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJ03E9AAy3--AcIm-7fFkZ8EKah2J5P3wLj9nl2-5JyuNYp=s96-c",
+  "lastSignedInAt": "1779230332042",
+  "createdAt": "1779150835887",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "100496329966082485624",
+      "email": "kaio_cacoal@hotmail.com",
+      "displayName": "kaio loandre rocha",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJ03E9AAy3--AcIm-7fFkZ8EKah2J5P3wLj9nl2-5JyuNYp=s96-c"
+    }
+  ]
+},
+{
+  "localId": "ioNlAPMMnTeQVeKnfdpLbPTDKdq2",
+  "email": "nathan.f.dasilva@gmail.com",
+  "emailVerified": true,
+  "displayName": "madruga motovlog",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIIiwK25yz7BWH6NNrE6vskaBUmppV2f9qihFOmJ6pkw_7fHxE=s96-c",
+  "lastSignedInAt": "1779233880373",
+  "createdAt": "1778809236474",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "118348028357701589726",
+      "email": "nathan.f.dasilva@gmail.com",
+      "displayName": "madruga motovlog",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIIiwK25yz7BWH6NNrE6vskaBUmppV2f9qihFOmJ6pkw_7fHxE=s96-c"
+    }
+  ]
+}]}

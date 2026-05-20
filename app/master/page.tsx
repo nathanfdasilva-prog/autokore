@@ -30,6 +30,7 @@ interface Stats {
 
 export default function MasterPage() {
   const { perfil, loading } = useAuth()
+  console.log('DEBUG:', { loading, perfil })
   const router = useRouter()
   const [oficinas, setOficinas] = useState<Oficina[]>([])
   const [stats, setStats] = useState<Record<string, Stats>>({})
@@ -54,14 +55,12 @@ export default function MasterPage() {
       const snap = await getDocs(collection(db, 'oficinas'))
       const lista = snap.docs.map(d => ({ id: d.id, ...d.data() } as Oficina))
       setOficinas(lista)
-
       const [osSnap, agSnap, clSnap, usSnap] = await Promise.all([
         getDocs(collection(db, 'ordens_servico')),
         getDocs(collection(db, 'agendamentos')),
         getDocs(collection(db, 'clientes')),
         getDocs(collection(db, 'users')),
       ])
-
       const statsMap: Record<string, Stats> = {}
       lista.forEach(of => {
         statsMap[of.id] = {
@@ -72,8 +71,11 @@ export default function MasterPage() {
         }
       })
       setStats(statsMap)
-    } catch (e) { console.error(e) }
-    finally { setLoadingDados(false) }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingDados(false)
+    }
   }
 
   async function toggleBloqueio(oficina: Oficina) {
@@ -84,8 +86,11 @@ export default function MasterPage() {
         ativo: !!oficina.bloqueada,
       })
       await carregarDados()
-    } catch (e) { console.error(e) }
-    finally { setAcao(null) }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setAcao(null)
+    }
   }
 
   async function handleLogout() {
@@ -93,15 +98,17 @@ export default function MasterPage() {
     router.replace('/login')
   }
 
-  // Aguarda Firebase carregar
-  if (loading) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
-  // Não é o master
-  if (!perfil || perfil.email !== MASTER_EMAIL) return null
+  if (!perfil || perfil.email !== MASTER_EMAIL) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -120,7 +127,6 @@ export default function MasterPage() {
           </button>
         </div>
       </div>
-
       <div className="p-4 md:p-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -144,9 +150,7 @@ export default function MasterPage() {
             <p className="text-xs text-gray-400">Total OS</p>
           </div>
         </div>
-
         <h2 className="text-sm font-semibold text-gray-300 mb-3">Oficinas Cadastradas</h2>
-
         {loadingDados ? (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
