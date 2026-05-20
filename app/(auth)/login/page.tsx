@@ -1,37 +1,32 @@
 'use client'
-// ============================================================
-// PÁGINA DE LOGIN — app/(auth)/login/page.tsx
-// ============================================================
-
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { loginComEmail, loginComGoogle } from '@/lib/firebase/auth'
+import { loginComEmail, loginComGoogle, capturarRedirectGoogle } from '@/lib/firebase/auth'
 import { useAuth } from '@/lib/context/AuthContext'
 
 export default function LoginPage() {
   const router = useRouter()
   const { isAdmin } = useAuth()
 
-  const [email,    setEmail]    = useState('')
-  const [senha,    setSenha]    = useState('')
-  const [erro,     setErro]     = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [email,   setEmail]   = useState('')
+  const [senha,   setSenha]   = useState('')
+  const [erro,    setErro]    = useState('')
+  const [loading, setLoading] = useState(false)
 
-  // Redireciona após login conforme role
-  function redirecionar(role?: string) {
-    if (role === 'admin') router.replace('/dashboard')
-    else                  router.replace('/os')
-  }
+  // Captura resultado do redirect Google no mobile
+  useEffect(() => {
+    capturarRedirectGoogle().then(user => {
+      if (user) router.replace('/os')
+    })
+  }, [])
 
-  // ---------- Login e-mail / senha ----------
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
     setLoading(true)
     try {
       await loginComEmail(email, senha)
-      // O redirect é feito pelo AuthContext + useEffect no layout
       router.replace(isAdmin ? '/dashboard' : '/os')
     } catch (err: any) {
       setErro(traduzirErroFirebase(err.code))
@@ -40,16 +35,16 @@ export default function LoginPage() {
     }
   }
 
-  // ---------- Login Google ----------
   async function handleGoogleLogin() {
     setErro('')
     setLoading(true)
     try {
-      await loginComGoogle()
-      router.replace('/os') // Google users → role padrão mecânico
+      const user = await loginComGoogle()
+      // Desktop: user retorna direto
+      // Mobile: retorna null (redirect acontece)
+      if (user) router.replace('/os')
     } catch (err: any) {
       setErro(traduzirErroFirebase(err.code))
-    } finally {
       setLoading(false)
     }
   }
@@ -58,7 +53,6 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
-        {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-orange-500">
             AutoKore
@@ -74,13 +68,11 @@ export default function LoginPage() {
             Entrar na sua conta
           </h2>
 
-          {/* Botão Google */}
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 mb-5"
           >
-            {/* Google SVG */}
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -96,12 +88,9 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
-          {/* Formulário e-mail */}
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                E-mail
-              </label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">E-mail</label>
               <input
                 type="email"
                 value={email}
@@ -113,9 +102,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Senha
-              </label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Senha</label>
               <input
                 type="password"
                 value={senha}
@@ -126,7 +113,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Erro */}
             {erro && (
               <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                 {erro}
@@ -143,16 +129,10 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-4 flex justify-between text-xs">
-            <Link
-              href="/recuperar-senha"
-              className="text-orange-500 hover:underline"
-            >
+            <Link href="/recuperar-senha" className="text-orange-500 hover:underline">
               Esqueceu a senha?
             </Link>
-            <Link
-              href="/registro"
-              className="text-gray-500 hover:text-gray-700"
-            >
+            <Link href="/registro" className="text-gray-500 hover:text-gray-700">
               Criar conta
             </Link>
           </div>
@@ -162,18 +142,11 @@ export default function LoginPage() {
   )
 }
 
-// ---------- Tradução de erros Firebase ----------
 function traduzirErroFirebase(code: string): string {
   const erros: Record<string, string> = {
-    'auth/user-not-found':       'Nenhum usuário encontrado com este e-mail.',
-    'auth/wrong-password':       'Senha incorreta. Tente novamente.',
-    'auth/invalid-email':        'E-mail inválido.',
-    'auth/user-disabled':        'Esta conta foi desativada.',
-    'auth/too-many-requests':    'Muitas tentativas. Aguarde e tente novamente.',
-    'auth/email-already-in-use': 'Este e-mail já está cadastrado.',
-    'auth/weak-password':        'A senha deve ter pelo menos 6 caracteres.',
-    'auth/popup-closed-by-user': 'Login cancelado.',
-    'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.',
-  }
-  return erros[code] ?? 'Erro inesperado. Tente novamente.'
-}
+    'auth/user-not-found':        'Nenhum usuário encontrado com este e-mail.',
+    'auth/wrong-password':        'Senha incorreta. Tente novamente.',
+    'auth/invalid-email':         'E-mail inválido.',
+    'auth/user-disabled':         'Esta conta foi desativada.',
+    'auth/too-many-requests':     'Muitas tentativas. Aguarde e tente novamente.',
+    'auth/

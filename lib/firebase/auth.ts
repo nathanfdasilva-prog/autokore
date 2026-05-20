@@ -1,12 +1,9 @@
-// ============================================================
-// AUTH — lib/firebase/auth.ts
-// Todas as funções de autenticação centralizadas aqui.
-// ============================================================
-
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut,
   sendPasswordResetEmail,
@@ -24,34 +21,37 @@ import type { Role, Usuario } from '../types'
 
 const googleProvider = new GoogleAuthProvider()
 
-// ----------------------------------------------------------
-// LOGIN com email e senha
-// ----------------------------------------------------------
+// Detecta se é mobile
+function isMobile() {
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
+}
+
 export async function loginComEmail(email: string, senha: string) {
   const cred = await signInWithEmailAndPassword(auth, email, senha)
   return cred.user
 }
 
-// ----------------------------------------------------------
-// LOGIN com Google
-// ----------------------------------------------------------
 export async function loginComGoogle() {
+  if (isMobile()) {
+    // Mobile: usa redirect (sem popup)
+    await signInWithRedirect(auth, googleProvider)
+    return null // página vai recarregar
+  }
+
+  // Desktop: usa popup normal
   const cred = await signInWithPopup(auth, googleProvider)
   const user = cred.user
 
-  // Verifica se o usuário já tem documento no Firestore
   const userRef = doc(db, 'users', user.uid)
-  const snap    = await getDoc(userRef)
+  const snap = await getDoc(userRef)
 
-  // Se é a primeira vez com Google, cria o doc básico
-  // O admin precisará definir o role e oficina_id depois
   if (!snap.exists()) {
     await setDoc(userRef, {
       uid:        user.uid,
       nome:       user.displayName ?? 'Usuário',
       email:      user.email,
-      role:       'mecanico' as Role,   // default — admin promove depois
-      oficina_id: '',                   // a ser preenchido no onboarding
+      role:       'mecanico' as Role,
+      oficina_id: '',
       ativo:      true,
       avatar_url: user.photoURL ?? '',
       createdAt:  serverTimestamp(),
@@ -61,9 +61,36 @@ export async function loginComGoogle() {
   return user
 }
 
-// ----------------------------------------------------------
-// REGISTRO com email/senha + criação de perfil no Firestore
-// ----------------------------------------------------------
+// Chama isso na página de login para capturar o resultado do redirect
+export async function capturarRedirectGoogle() {
+  try {
+    const result = await getRedirectResult(auth)
+    if (!result) return null
+
+    const user = result.user
+    const userRef = doc(db, 'users', user.uid)
+    const snap = await getDoc(userRef)
+
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        uid:        user.uid,
+        nome:       user.displayName ?? 'Usuário',
+        email:      user.email,
+        role:       'mecanico' as Role,
+        oficina_id: '',
+        ativo:      true,
+        avatar_url: user.photoURL ?? '',
+        createdAt:  serverTimestamp(),
+      })
+    }
+
+    return user
+  } catch (e) {
+    console.error(e)
+    return null
+  }
+}
+
 export async function registrarUsuario(params: {
   nome:       string
   email:      string
@@ -76,10 +103,8 @@ export async function registrarUsuario(params: {
   const cred = await createUserWithEmailAndPassword(auth, email, senha)
   const user = cred.user
 
-  // Atualiza displayName no Auth
   await updateProfile(user, { displayName: nome })
 
-  // Cria documento do usuário no Firestore
   await setDoc(doc(db, 'users', user.uid), {
     uid:        user.uid,
     nome,
@@ -94,23 +119,14 @@ export async function registrarUsuario(params: {
   return user
 }
 
-// ----------------------------------------------------------
-// RECUPERAÇÃO de senha
-// ----------------------------------------------------------
 export async function recuperarSenha(email: string) {
   await sendPasswordResetEmail(auth, email)
 }
 
-// ----------------------------------------------------------
-// LOGOUT
-// ----------------------------------------------------------
 export async function logout() {
   await signOut(auth)
 }
 
-// ----------------------------------------------------------
-// BUSCAR dados do usuário no Firestore
-// ----------------------------------------------------------
 export async function buscarPerfil(user: User): Promise<Usuario | null> {
   const snap = await getDoc(doc(db, 'users', user.uid))
   if (!snap.exists()) return null
