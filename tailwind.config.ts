@@ -1,4 +1,3 @@
-// tailwind.config.ts
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
@@ -11,16 +10,28 @@ const config: Config = {
     extend: {
       colors: {
         orange: {
-          50:  '#FFF0E6',
-          100: '#FFD9B3',
-          200: '#FFB566',
-          300: '#FF9133',
-          400: '#FF7A00',
-          500: '#E85D04',   // cor principal da marca
-          600: '#B34500',
-          700: '#7A2F00',
-          800: '#4A1C00',
-          900: '#1A0A00',
+          50:  '#FFF5F5',
+          100: '#FFD0D0',
+          200: '#FFA0A0',
+          300: '#FF7070',
+          400: '#E03030',
+          500: '#C0131A',   // vermelho escuro principal
+          600: '#8B0D12',
+          700: '#5E0809',
+          800: '#350405',
+          900: '#1A0202',
+        },
+        gold: {
+          50:  '#FFFBF0',
+          100: '#FFF0C0',
+          200: '#FFE080',
+          300: '#F0C840',
+          400: '#D4A017',   // dourado principal
+          500: '#B08010',
+          600: '#806008',
+          700: '#504005',
+          800: '#302502',
+          900: '#181200',
         },
       },
       fontFamily: {
