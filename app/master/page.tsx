@@ -30,7 +30,6 @@ interface Stats {
 
 export default function MasterPage() {
   const { perfil, loading } = useAuth()
-  console.log('DEBUG:', { loading, perfil })
   const router = useRouter()
   const [oficinas, setOficinas] = useState<Oficina[]>([])
   const [stats, setStats] = useState<Record<string, Stats>>({})
