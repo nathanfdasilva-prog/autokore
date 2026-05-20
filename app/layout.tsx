@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/lib/context/AuthContext'
 import InstallBanner from '@/components/pwa/InstallBanner'
+import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor:    '#E85D04',
+  themeColor:    '#C0131A',
   width:         'device-width',
   initialScale:  1,
   maximumScale:  1,
@@ -23,7 +24,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -31,10 +32,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${inter.className} antialiased`}>
-        <AuthProvider>
-          {children}
-          <InstallBanner />
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <AuthProvider>
+            {children}
+            <InstallBanner />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
