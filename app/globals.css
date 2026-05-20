@@ -11,14 +11,6 @@
     @apply bg-gray-50 text-gray-900 dark:bg-black dark:text-white;
   }
 
-  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5 {
-    color: #ffffff;
-  }
-
-  .dark p, .dark span, .dark td, .dark th, .dark label {
-    color: inherit;
-  }
-
   .dark .bg-white {
     background-color: #111111 !important;
   }
@@ -29,26 +21,6 @@
 
   .dark .bg-gray-100 {
     background-color: #1a1a1a !important;
-  }
-
-  .dark .text-gray-800 {
-    color: #ffffff !important;
-  }
-
-  .dark .text-gray-700 {
-    color: #f0f0f0 !important;
-  }
-
-  .dark .text-gray-600 {
-    color: #d0d0d0 !important;
-  }
-
-  .dark .text-gray-500 {
-    color: #a0a0a0 !important;
-  }
-
-  .dark .text-gray-400 {
-    color: #707070 !important;
   }
 
   .dark .border-gray-200 {
@@ -67,19 +39,10 @@
     background-color: #2a2a2a !important;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-gray-100 dark:bg-neutral-900;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-neutral-700 rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400 dark:bg-neutral-600;
-  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-gray-100 dark:bg-neutral-900; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-neutral-700 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-neutral-600; }
 }
 
 @layer components {
