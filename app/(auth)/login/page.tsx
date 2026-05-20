@@ -14,7 +14,6 @@ export default function LoginPage() {
   const [erro,    setErro]    = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Captura resultado do redirect Google no mobile
   useEffect(() => {
     capturarRedirectGoogle().then(user => {
       if (user) router.replace('/os')
@@ -40,8 +39,6 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const user = await loginComGoogle()
-      // Desktop: user retorna direto
-      // Mobile: retorna null (redirect acontece)
       if (user) router.replace('/os')
     } catch (err: any) {
       setErro(traduzirErroFirebase(err.code))
@@ -52,21 +49,16 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-orange-500">
             AutoKore
             <span className="text-gray-700 font-normal">.app</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Gestão inteligente de oficinas
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Gestão inteligente de oficinas</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-5">
-            Entrar na sua conta
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-5">Entrar na sua conta</h2>
 
           <button
             onClick={handleGoogleLogin}
@@ -100,7 +92,6 @@ export default function LoginPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition"
               />
             </div>
-
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Senha</label>
               <input
@@ -144,9 +135,15 @@ export default function LoginPage() {
 
 function traduzirErroFirebase(code: string): string {
   const erros: Record<string, string> = {
-    'auth/user-not-found':        'Nenhum usuário encontrado com este e-mail.',
-    'auth/wrong-password':        'Senha incorreta. Tente novamente.',
-    'auth/invalid-email':         'E-mail inválido.',
-    'auth/user-disabled':         'Esta conta foi desativada.',
-    'auth/too-many-requests':     'Muitas tentativas. Aguarde e tente novamente.',
-    'auth/
+    'auth/user-not-found': 'Nenhum usuario encontrado com este e-mail.',
+    'auth/wrong-password': 'Senha incorreta. Tente novamente.',
+    'auth/invalid-email': 'E-mail invalido.',
+    'auth/user-disabled': 'Esta conta foi desativada.',
+    'auth/too-many-requests': 'Muitas tentativas. Aguarde e tente novamente.',
+    'auth/email-already-in-use': 'Este e-mail ja esta cadastrado.',
+    'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
+    'auth/popup-closed-by-user': 'Login cancelado.',
+    'auth/network-request-failed': 'Erro de conexao. Verifique sua internet.',
+  }
+  return erros[code] ?? 'Erro inesperado. Tente novamente.'
+}
