@@ -27,8 +27,8 @@ export default function OSDetalhePage({ params }: { params: { id: string } }) {
   const { os, loading }     = useOS(id)
   const { perfil, isAdmin, oficina } = useAuth()
 
-const oficinaNome = oficina?.nome ?? 'Oficina'
-const oficinaTel  = oficina?.whatsapp ?? ''
+  const oficinaNome = oficina?.nome ?? 'Oficina'
+  const oficinaTel  = oficina?.whatsapp ?? ''
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!os) return <div className="text-center py-20"><p className="text-gray-500">OS não encontrada.</p><Link href="/os" className="btn-primary mt-4 inline-flex">Voltar</Link></div>
@@ -66,8 +66,8 @@ const oficinaTel  = oficina?.whatsapp ?? ''
           {os.cliente_whatsapp && (
             <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
               <BotaoWhatsApp numero={os.cliente_whatsapp} mensagem={`Olá, ${os.cliente_nome}!`} label="Contato direto" variante="icon" />
-              {os.valor_total > 0 && os.status !== 'concluida' && <BotaoEnviarOrcamento os={os} oficina_nome="Minha Oficina" />}
-              {os.status === 'concluida' && <BotaoOsConcluida os={os} oficina_nome="Minha Oficina" />}
+              {os.valor_total > 0 && os.status !== 'concluida' && <BotaoEnviarOrcamento os={os} oficina_nome={oficinaNome} />}
+              {os.status === 'concluida' && <BotaoOsConcluida os={os} oficina_nome={oficinaNome} />}
             </div>
           )}
         </div>
