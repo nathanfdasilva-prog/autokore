@@ -1,8 +1,4 @@
 'use client'
-// ============================================================
-// ORÇAMENTOS — app/(admin)/orcamentos/page.tsx
-// ============================================================
-
 import { useState } from 'react'
 import Link from 'next/link'
 import { format, isAfter } from 'date-fns'
@@ -32,16 +28,15 @@ const STATUS_CFG: Record<StatusOrcamento, { label: string; cls: string; icon: Re
 }
 
 export default function OrcamentosPage() {
-  const { perfil }             = useAuth()
+  const { perfil, oficina }     = useAuth()
   const { orcamentos, loading } = useOrcamentos()
-  const [filtro, setFiltro]    = useState<StatusOrcamento | 'todos'>('todos')
-  const [convertendo, setConv] = useState<string | null>(null)
+  const [filtro, setFiltro]     = useState<StatusOrcamento | 'todos'>('todos')
+  const [convertendo, setConv]  = useState<string | null>(null)
 
   const lista = orcamentos.filter(o =>
     filtro === 'todos' || o.status === filtro
   )
 
-  // Enviar orçamento via WhatsApp
   function handleEnviarWhatsApp(orc: Orcamento) {
     const msg = TEMPLATES.orcamento({
       cliente:  orc.cliente_nome,
@@ -49,13 +44,12 @@ export default function OrcamentosPage() {
       pecas:    brl(orc.valor_pecas).replace('R$\u00a0',''),
       mao_obra: brl(orc.valor_servicos).replace('R$\u00a0',''),
       total:    brl(orc.valor_final).replace('R$\u00a0',''),
-      oficina:  'Minha Oficina',
+      oficina:  oficina?.nome ?? 'Oficina',
     })
     abrirWhatsApp(orc.cliente_whatsapp, msg)
     if (orc.status === 'rascunho') enviarOrcamento(orc.id)
   }
 
-  // Converter orçamento aprovado em OS
   async function handleConverter(orc: Orcamento) {
     if (!perfil) return
     setConv(orc.id)
@@ -84,26 +78,22 @@ export default function OrcamentosPage() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Orçamentos</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {orcamentos.length} orçamentos no total
-          </p>
+          <p className="text-sm text-gray-500 mt-0.5">{orcamentos.length} orçamentos no total</p>
         </div>
         <Link href="/orcamentos/novo" className="btn-primary flex items-center gap-2">
           <Plus size={16} />Novo orçamento
         </Link>
       </div>
 
-      {/* KPIs rápidos */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {([
-          { label: 'Rascunhos',  status: 'rascunho',  cor: 'text-gray-600 bg-gray-100'    },
-          { label: 'Enviados',   status: 'enviado',   cor: 'text-blue-600 bg-blue-100'    },
-          { label: 'Aprovados',  status: 'aprovado',  cor: 'text-green-600 bg-green-100'  },
-          { label: 'Reprovados', status: 'reprovado', cor: 'text-red-600 bg-red-100'      },
+          { label: 'Rascunhos',  status: 'rascunho',  cor: 'text-gray-600 bg-gray-100'   },
+          { label: 'Enviados',   status: 'enviado',   cor: 'text-blue-600 bg-blue-100'   },
+          { label: 'Aprovados',  status: 'aprovado',  cor: 'text-green-600 bg-green-100' },
+          { label: 'Reprovados', status: 'reprovado', cor: 'text-red-600 bg-red-100'     },
         ] as const).map(k => {
           const qtd = orcamentos.filter(o => o.status === k.status).length
           return (
@@ -116,7 +106,6 @@ export default function OrcamentosPage() {
         })}
       </div>
 
-      {/* Filtro status */}
       <div className="flex gap-2 mb-4 flex-wrap">
         <button onClick={() => setFiltro('todos')}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${filtro === 'todos' ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
@@ -130,7 +119,6 @@ export default function OrcamentosPage() {
         ))}
       </div>
 
-      {/* Lista */}
       {loading ? (
         <div className="flex justify-center py-14">
           <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -150,7 +138,6 @@ export default function OrcamentosPage() {
             return (
               <div key={orc.id} className={`card transition hover:shadow-sm ${venc ? 'border-amber-200 bg-amber-50/30' : ''}`}>
                 <div className="flex items-start gap-4">
-                  {/* Núm + status */}
                   <div className="flex-shrink-0">
                     <p className="text-xs font-mono text-gray-400 font-semibold">
                       #{String(orc.numero).padStart(4,'0')}
@@ -162,7 +149,6 @@ export default function OrcamentosPage() {
                     {venc && <span className="badge badge-red mt-1 flex items-center gap-1"><AlertTriangle size={10} />Vencido</span>}
                   </div>
 
-                  {/* Info principal */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800">{orc.cliente_nome}</p>
                     <p className="text-xs text-gray-500">{orc.veiculo} — <span className="font-mono">{orc.placa}</span></p>
@@ -174,16 +160,13 @@ export default function OrcamentosPage() {
                     </div>
                   </div>
 
-                  {/* Valor + ações */}
                   <div className="text-right flex-shrink-0">
                     <p className="text-lg font-bold text-orange-500">{brl(orc.valor_final)}</p>
                     {orc.desconto > 0 && (
                       <p className="text-xs text-gray-400 line-through">{brl(orc.valor_total)}</p>
                     )}
-                    {/* Ações por status */}
                     <div className="flex gap-1.5 mt-2 justify-end flex-wrap">
-                      {(orc.status === 'rascunho' || orc.status === 'enviado') &&
-                        orc.cliente_whatsapp && (
+                      {(orc.status === 'rascunho' || orc.status === 'enviado') && orc.cliente_whatsapp && (
                         <button onClick={() => handleEnviarWhatsApp(orc)}
                           className="text-xs bg-green-50 text-green-700 border border-green-200 rounded-lg px-2 py-1 hover:bg-green-100 transition flex items-center gap-1">
                           <Send size={11} />Enviar
@@ -202,11 +185,8 @@ export default function OrcamentosPage() {
                         </>
                       )}
                       {orc.status === 'aprovado' && !orc.os_id && (
-                        <button
-                          onClick={() => handleConverter(orc)}
-                          disabled={convertendo === orc.id}
-                          className="text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-lg px-2 py-1 hover:bg-orange-100 transition flex items-center gap-1 disabled:opacity-50"
-                        >
+                        <button onClick={() => handleConverter(orc)} disabled={convertendo === orc.id}
+                          className="text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-lg px-2 py-1 hover:bg-orange-100 transition flex items-center gap-1 disabled:opacity-50">
                           <RotateCcw size={11} />
                           {convertendo === orc.id ? '...' : 'Gerar OS'}
                         </button>
