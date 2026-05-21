@@ -2,9 +2,10 @@
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ArrowLeft, Car, Bike, Package, DollarSign, User } from 'lucide-react'
+import { ArrowLeft, Car, Bike, Package, DollarSign, User, Printer } from 'lucide-react'
 import { useOS, atualizarStatusOS } from '@/lib/hooks/useOS'
 import { useAuth } from '@/lib/context/AuthContext'
+import { imprimirOS } from '@/lib/services/osPDF'
 import {
   BotaoOsConcluida,
   BotaoEnviarOrcamento,
@@ -25,6 +26,9 @@ export default function OSDetalhePage({ params }: { params: { id: string } }) {
   const { id }              = params
   const { os, loading }     = useOS(id)
   const { perfil, isAdmin } = useAuth()
+
+  const oficinaNome = perfil?.oficina_nome ?? 'Oficina'
+  const oficinaTel  = perfil?.whatsapp ?? ''
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!os) return <div className="text-center py-20"><p className="text-gray-500">OS não encontrada.</p><Link href="/os" className="btn-primary mt-4 inline-flex">Voltar</Link></div>
@@ -122,6 +126,20 @@ export default function OSDetalhePage({ params }: { params: { id: string } }) {
             </div>
           </div>
         )}
+
+        <div className="card flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-700">Relatório da OS</p>
+            <p className="text-xs text-gray-400">Gera PDF para impressão ou envio</p>
+          </div>
+          <button
+            onClick={() => imprimirOS(os, oficinaNome, oficinaTel)}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition"
+          >
+            <Printer size={15} />
+            Gerar PDF
+          </button>
+        </div>
       </div>
     </div>
   )
