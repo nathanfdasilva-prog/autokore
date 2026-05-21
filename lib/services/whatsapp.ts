@@ -1,17 +1,9 @@
 // ============================================================
 // SERVIÇO DE NOTIFICAÇÕES WHATSAPP — lib/services/whatsapp.ts
-//
-// Suporta 3 modalidades:
-//   1. Link direto wa.me (sem API, gratuito)
-//   2. Evolution API (self-hosted, gratuito)
-//   3. Twilio (pago, produção)
-//
-// Configure via variáveis de ambiente.
 // ============================================================
 
 export type ProvedorWhatsApp = 'link' | 'evolution' | 'twilio'
 
-// Templates de mensagem
 export const TEMPLATES = {
   // Confirmação de agendamento
   agendamento_confirmado: (params: {
@@ -23,14 +15,14 @@ export const TEMPLATES = {
     oficina:  string
     whatsapp: string
   }) =>
-    `Olá, *${params.cliente}*! 👋\n\n` +
-    `Seu agendamento na *${params.oficina}* foi confirmado! ✅\n\n` +
-    `📅 *Data:* ${params.data}\n` +
-    `⏰ *Horário:* ${params.horario}\n` +
-    `🚗 *Veículo:* ${params.veiculo}\n` +
-    `🔧 *Serviço:* ${params.servico}\n\n` +
-    `Em caso de dúvidas, responda esta mensagem.\n` +
-    `_AutoKore.app_`,
+    `Olá, *${params.cliente}*! Tudo bem?\n\n` +
+    `Passando para confirmar seu agendamento aqui na *${params.oficina}*.\n\n` +
+    `*Data:* ${params.data}\n` +
+    `*Horário:* ${params.horario}\n` +
+    `*Veículo:* ${params.veiculo}\n` +
+    `*Serviço:* ${params.servico}\n\n` +
+    `Qualquer dúvida é só responder essa mensagem. Te esperamos!\n\n` +
+    `_${params.oficina} · AutoKore.app_`,
 
   // Lembrete 1 dia antes
   lembrete_agendamento: (params: {
@@ -39,11 +31,11 @@ export const TEMPLATES = {
     horario: string
     oficina: string
   }) =>
-    `Olá, *${params.cliente}*! 🔔\n\n` +
-    `Lembrete: você tem um agendamento *amanhã* na *${params.oficina}*.\n\n` +
-    `📅 ${params.data} às ${params.horario}\n\n` +
-    `Para cancelar ou reagendar, entre em contato conosco.\n` +
-    `_AutoKore.app_`,
+    `Olá, *${params.cliente}*!\n\n` +
+    `Lembrando que amanhã você tem horário marcado aqui na *${params.oficina}*.\n\n` +
+    `*Data:* ${params.data} às ${params.horario}\n\n` +
+    `Se precisar remarcar, é só nos avisar com antecedência. Até amanhã!\n\n` +
+    `_${params.oficina} · AutoKore.app_`,
 
   // OS concluída — veículo pronto
   os_concluida: (params: {
@@ -53,54 +45,45 @@ export const TEMPLATES = {
     valor:   string
     oficina: string
   }) =>
-    `Olá, *${params.cliente}*! 🎉\n\n` +
-    `Seu veículo está *pronto para retirada*! 🚗✨\n\n` +
-    `🔧 *Serviço:* ${params.servico}\n` +
-    `🚘 *Veículo:* ${params.veiculo}\n` +
-    `💰 *Valor:* R$${params.valor}\n\n` +
-    `Nos vemos em breve!\n` +
+    `Olá, *${params.cliente}*!\n\n` +
+    `Seu veículo já está pronto e pode ser retirado quando quiser.\n\n` +
+    `*Serviço realizado:* ${params.servico}\n` +
+    `*Veículo:* ${params.veiculo}\n` +
+    `*Valor total:* R$ ${params.valor}\n\n` +
+    `Qualquer dúvida estamos à disposição. Obrigado pela confiança!\n\n` +
     `_${params.oficina} · AutoKore.app_`,
 
   // Orçamento
   orcamento: (params: {
-    cliente: string
-    veiculo: string
-    pecas:   string
+    cliente:  string
+    veiculo:  string
+    pecas:    string
     mao_obra: string
-    total:   string
-    oficina: string
+    total:    string
+    oficina:  string
   }) =>
-    `Olá, *${params.cliente}*! 📋\n\n` +
-    `Segue o orçamento para seu veículo *${params.veiculo}*:\n\n` +
-    `🔩 Peças: R$${params.pecas}\n` +
-    `🔧 Mão de obra: R$${params.mao_obra}\n` +
-    `━━━━━━━━━━━━━━━━\n` +
-    `💰 *Total: R$${params.total}*\n\n` +
-    `Para aprovar, responda *SIM*.\n` +
+    `Olá, *${params.cliente}*!\n\n` +
+    `Segue o orçamento que preparamos para o seu *${params.veiculo}*:\n\n` +
+    `Peças: R$ ${params.pecas}\n` +
+    `Mão de obra: R$ ${params.mao_obra}\n` +
+    `*Total: R$ ${params.total}*\n\n` +
+    `Se quiser aprovar ou tiver alguma dúvida, é só responder essa mensagem.\n\n` +
     `_${params.oficina} · AutoKore.app_`,
 
-  // Revisão preventiva — lembrete automático
+  // Revisão preventiva
   lembrete_revisao: (params: {
     cliente: string
     veiculo: string
     km:      string
     oficina: string
   }) =>
-    `Olá, *${params.cliente}*! 🔔\n\n` +
-    `Seu *${params.veiculo}* está próximo da revisão dos *${params.km} km*.\n\n` +
-    `Agende já para manter seu veículo em dia! 🚗\n\n` +
-    `Responda esta mensagem para marcar.\n` +
+    `Olá, *${params.cliente}*!\n\n` +
+    `Tudo bem? Passando para avisar que seu *${params.veiculo}* está próximo da revisão dos *${params.km} km*.\n\n` +
+    `Manter a revisão em dia evita problemas maiores e garante mais segurança. Se quiser agendar, é só nos chamar!\n\n` +
     `_${params.oficina} · AutoKore.app_`,
 }
 
-// ----------------------------------------------------------
-// 1. Link direto — abre o WhatsApp Web / app
-//    Não requer API, funciona em qualquer plano.
-// ----------------------------------------------------------
-export function gerarLinkWhatsApp(
-  numero:   string,
-  mensagem: string,
-): string {
+export function gerarLinkWhatsApp(numero: string, mensagem: string): string {
   const num = numero.replace(/\D/g, '')
   const numBR = num.startsWith('55') ? num : `55${num}`
   return `https://wa.me/${numBR}?text=${encodeURIComponent(mensagem)}`
@@ -111,21 +94,15 @@ export function abrirWhatsApp(numero: string, mensagem: string) {
   window.open(link, '_blank')
 }
 
-// ----------------------------------------------------------
-// 2. Evolution API — self-hosted, grátis
-//    https://doc.evolution-api.com
-//    Deploy: Railway, VPS, Docker
-// ----------------------------------------------------------
 export async function enviarViaEvolutionAPI(params: {
   numero:   string
   mensagem: string
 }): Promise<{ sucesso: boolean; erro?: string }> {
-  const BASE_URL  = process.env.NEXT_PUBLIC_EVOLUTION_API_URL
-  const API_KEY   = process.env.NEXT_PUBLIC_EVOLUTION_API_KEY
-  const INSTANCE  = process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE ?? 'autokore'
+  const BASE_URL = process.env.NEXT_PUBLIC_EVOLUTION_API_URL
+  const API_KEY  = process.env.NEXT_PUBLIC_EVOLUTION_API_KEY
+  const INSTANCE = process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE ?? 'autokore'
 
   if (!BASE_URL || !API_KEY) {
-    console.warn('[WhatsApp] Evolution API não configurada. Usando link direto.')
     return { sucesso: false, erro: 'API não configurada' }
   }
 
@@ -137,7 +114,7 @@ export async function enviarViaEvolutionAPI(params: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey':       API_KEY,
+        'apikey': API_KEY,
       },
       body: JSON.stringify({
         number: `${numBR}@s.whatsapp.net`,
@@ -156,47 +133,21 @@ export async function enviarViaEvolutionAPI(params: {
   }
 }
 
-// ----------------------------------------------------------
-// 3. Twilio (produção paga)
-//    Requer conta Twilio + número aprovado para WhatsApp.
-//    Chamada deve ser feita via Next.js API Route (server-side)
-//    para proteger as credenciais.
-// ----------------------------------------------------------
-// Exemplo de uso em app/api/whatsapp/route.ts:
-//
-// import twilio from 'twilio'
-// const client = twilio(
-//   process.env.TWILIO_ACCOUNT_SID,
-//   process.env.TWILIO_AUTH_TOKEN,
-// )
-// await client.messages.create({
-//   body: mensagem,
-//   from: 'whatsapp:+14155238886',
-//   to:   `whatsapp:+55${numero}`,
-// })
-
-// ----------------------------------------------------------
-// Função principal — tenta Evolution API, fallback para link
-// ----------------------------------------------------------
 export async function enviarNotificacaoWhatsApp(params: {
-  numero:   string
-  mensagem: string
+  numero:       string
+  mensagem:     string
   forcar_link?: boolean
 }): Promise<void> {
   const { numero, mensagem, forcar_link } = params
 
-  // Se forçar link ou não há API configurada, abre direto
   if (forcar_link || !process.env.NEXT_PUBLIC_EVOLUTION_API_URL) {
     abrirWhatsApp(numero, mensagem)
     return
   }
 
-  // Tenta enviar via API
   const resultado = await enviarViaEvolutionAPI({ numero, mensagem })
 
-  // Se falhou, fallback para link
   if (!resultado.sucesso) {
-    console.warn('[WhatsApp] API falhou, abrindo link direto:', resultado.erro)
     abrirWhatsApp(numero, mensagem)
   }
 }
