@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   Plus, Search, Package, AlertTriangle,
   ArrowDown, ArrowUp, X, Save, Trash2,
+  Upload, Download,
 } from 'lucide-react'
 import {
   collection, addDoc, updateDoc, doc, deleteDoc,
@@ -53,8 +54,12 @@ export default function EstoquePage() {
   const [qtdMov,      setQtdMov]      = useState(1)
   const [salvandoMov, setSalvandoMov] = useState(false)
 
-  const [modalDeletar,   setModalDeletar]   = useState<ItemEstoque | null>(null)
-  const [deletando,      setDeletando]      = useState(false)
+  const [modalDeletar, setModalDeletar] = useState<ItemEstoque | null>(null)
+  const [deletando,    setDeletando]    = useState(false)
+
+  const [importando,   setImportando]  = useState(false)
+  const [importResult, setImportResult]= useState<{ ok: number; erro: number } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const itensFiltrados = itens
     .filter(i => catFiltro === 'todas' || i.categoria === catFiltro)
@@ -154,11 +159,89 @@ export default function EstoquePage() {
     }
   }
 
+  function baixarModelo() {
+    const csv = [
+      'nome,categoria,unidade,quantidade,quantidade_minima,preco_custo,preco_venda,fornecedor',
+      'Oleo Motor 5W30,lubrificantes,lt,10,2,25.00,45.00,Distribuidora Auto',
+      'Filtro de Oleo,filtros,un,20,5,8.00,18.00,Bosch',
+      'Pastilha de Freio Dianteira,freios,par,8,2,35.00,75.00,TRW',
+      'Vela de Ignicao,motor,un,16,4,12.00,28.00,NGK',
+      'Correia Dentada,motor,un,5,1,45.00,95.00,Gates',
+    ].join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = 'modelo_estoque_autokore.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleImportarCSV(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !perfil) return
+    setImportando(true)
+    setImportResult(null)
+
+    const text = await file.text()
+    const linhas = text.split('\n').map(l => l.trim()).filter(Boolean)
+    const cabecalho = linhas[0].toLowerCase()
+
+    if (!cabecalho.includes('nome')) {
+      alert('Arquivo invalido. Use o modelo fornecido.')
+      setImportando(false)
+      return
+    }
+
+    const dados = linhas.slice(1)
+    let ok = 0, erro = 0
+
+    for (const linha of dados) {
+      try {
+        const cols = linha.split(',')
+        const nome = cols[0]?.trim()
+        if (!nome) { erro++; continue }
+
+        const categoria = (cols[1]?.trim() || 'outros') as CategoriaEstoque
+        const unidade   = (cols[2]?.trim() || 'un') as any
+        const quantidade        = Number(cols[3]?.trim()) || 0
+        const quantidade_minima = Number(cols[4]?.trim()) || 2
+        const preco_custo       = Number(cols[5]?.trim()) || 0
+        const preco_venda       = Number(cols[6]?.trim()) || 0
+        const fornecedor        = cols[7]?.trim() || ''
+
+        await addDoc(collection(db, 'estoque'), {
+          nome,
+          nome_lower: nome.toLowerCase(),
+          categoria,
+          unidade,
+          quantidade,
+          quantidade_minima,
+          preco_custo,
+          preco_venda,
+          fornecedor,
+          descricao:  '',
+          oficina_id: perfil.oficina_id,
+          createdAt:  serverTimestamp(),
+          updatedAt:  serverTimestamp(),
+        })
+        ok++
+      } catch {
+        erro++
+      }
+    }
+
+    setImportResult({ ok, erro })
+    setImportando(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Estoque / Pecas</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Estoque / Pecas</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {itens.length} itens cadastrados
             {itensCriticos.length > 0 && (
@@ -166,10 +249,30 @@ export default function EstoquePage() {
             )}
           </p>
         </div>
-        <button onClick={abrirCriar} className="btn-primary flex items-center gap-2">
-          <Plus size={16} />Nova peca
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={baixarModelo}
+            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+            <Download size={15} />Modelo CSV
+          </button>
+          <label className={`flex items-center gap-2 px-3 py-2 text-sm border border-orange-200 rounded-xl text-orange-600 hover:bg-orange-50 transition cursor-pointer ${importando ? 'opacity-50 pointer-events-none' : ''}`}>
+            <Upload size={15} />{importando ? 'Importando...' : 'Importar CSV'}
+            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImportarCSV} />
+          </label>
+          <button onClick={abrirCriar} className="btn-primary flex items-center gap-2">
+            <Plus size={16} />Nova peca
+          </button>
+        </div>
       </div>
+
+      {importResult && (
+        <div className={`rounded-xl p-4 mb-5 border ${importResult.erro === 0 ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+          <p className={`text-sm font-semibold ${importResult.erro === 0 ? 'text-green-700' : 'text-yellow-700'}`}>
+            Importacao concluida! ✅ {importResult.ok} itens importados
+            {importResult.erro > 0 && ` · ⚠️ ${importResult.erro} com erro`}
+          </p>
+          <button onClick={() => setImportResult(null)} className="text-xs text-gray-400 mt-1 hover:underline">Fechar</button>
+        </div>
+      )}
 
       {itensCriticos.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5">
@@ -281,7 +384,6 @@ export default function EstoquePage() {
         </div>
       )}
 
-      {/* Modal confirmar exclusao */}
       {modalDeletar && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6">
@@ -308,7 +410,6 @@ export default function EstoquePage() {
         </div>
       )}
 
-      {/* Modal criar/editar */}
       {modalAberto && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
@@ -371,7 +472,6 @@ export default function EstoquePage() {
         </div>
       )}
 
-      {/* Modal movimentacao */}
       {modalMov && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6">
