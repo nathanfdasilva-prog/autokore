@@ -9,18 +9,35 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title:       'AutoKore — Gestão de Oficinas',
-  description: 'Sistema completo de gestão para oficinas mecânicas de carros e motos.',
+  title:       'AutoKore — Gestão de Oficinas Mecânicas',
+  description: 'Sistema completo de gestão para oficinas mecânicas. Controle OS, estoque, clientes, agendamentos e faturamento em um so lugar.',
   manifest:    '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'AutoKore' },
+  keywords:    ['gestao de oficina', 'software oficina mecanica', 'sistema oficina', 'ordem de servico', 'AutoKore', 'mecanica'],
+  authors:     [{ name: 'AutoKore' }],
+  openGraph: {
+    title:       'AutoKore — Gestão de Oficinas Mecânicas',
+    description: 'Sistema completo para oficinas mecanicas. OS, estoque, clientes e faturamento em um so lugar.',
+    url:         'https://autokore.com.br',
+    siteName:    'AutoKore',
+    locale:      'pt_BR',
+    type:        'website',
+  },
+  twitter: {
+    card:        'summary_large_image',
+    title:       'AutoKore — Gestão de Oficinas',
+    description: 'Sistema completo para oficinas mecanicas.',
+  },
+  alternates: {
+    canonical: 'https://autokore.com.br',
+  },
 }
 
 export const viewport: Viewport = {
-  themeColor:    '#E85D04',
-  width:         'device-width',
-  initialScale:  1,
-  maximumScale:  1,
-  userScalable:  false,
+  themeColor:   '#E85D04',
+  width:        'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
