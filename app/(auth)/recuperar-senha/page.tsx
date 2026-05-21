@@ -1,31 +1,28 @@
 'use client'
-// ============================================================
-// RECUPERAR SENHA — app/(auth)/recuperar-senha/page.tsx
-// ============================================================
-
 import { useState } from 'react'
 import Link from 'next/link'
-import { recuperarSenha } from '@/lib/firebase/auth'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import { auth } from '@/lib/firebase/config'
 
 export default function RecuperarSenhaPage() {
   const [email,   setEmail]   = useState('')
   const [enviado, setEnviado] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [erro,    setErro]    = useState('')
+  const [loading, setLoading] = useState(false)
 
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
     setLoading(true)
     try {
-      await recuperarSenha(email)
+      await sendPasswordResetEmail(auth, email)
       setEnviado(true)
-    } catch (err: any) {
-      setErro(
-        err.code === 'auth/user-not-found'
-          ? 'Nenhuma conta encontrada com este e-mail.'
-          : 'Erro ao enviar. Tente novamente.'
-      )
+    } catch (e: any) {
+      const erros: Record<string, string> = {
+        'auth/user-not-found': 'Nenhuma conta encontrada com este e-mail.',
+        'auth/invalid-email':  'E-mail inválido.',
+      }
+      setErro(erros[e.code] ?? 'Erro ao enviar. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -38,6 +35,7 @@ export default function RecuperarSenhaPage() {
           <h1 className="text-3xl font-bold text-orange-500">
             AutoKore<span className="text-gray-700 font-normal">.app</span>
           </h1>
+          <p className="text-sm text-gray-500 mt-1">Recuperar acesso</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -47,17 +45,17 @@ export default function RecuperarSenhaPage() {
                 <span className="text-2xl">✉️</span>
               </div>
               <h2 className="text-base font-semibold text-gray-800 mb-2">E-mail enviado!</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Verifique sua caixa de entrada em <strong>{email}</strong> e siga as instruções.
+              <p className="text-sm text-gray-500 mb-5">
+                Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.
               </p>
-              <Link href="/login" className="btn-primary text-sm">
+              <Link href="/login" className="text-orange-500 hover:underline text-sm">
                 Voltar para o login
               </Link>
             </div>
           ) : (
             <>
-              <h2 className="text-lg font-semibold text-gray-800 mb-1">Recuperar senha</h2>
-              <p className="text-sm text-gray-500 mb-5">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">Recuperar senha</h2>
+              <p className="text-xs text-gray-500 mb-5">
                 Digite seu e-mail e enviaremos um link para redefinir sua senha.
               </p>
 
@@ -68,26 +66,26 @@ export default function RecuperarSenhaPage() {
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    required
                     placeholder="seu@email.com"
-                    className="input-base"
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition"
                   />
                 </div>
+
                 {erro && (
-                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    {erro}
-                  </p>
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{erro}</p>
                 )}
-                <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
-                  {loading ? 'Enviando...' : 'Enviar link'}
+
+                <button type="submit" disabled={loading}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2.5 rounded-lg text-sm transition disabled:opacity-50">
+                  {loading ? 'Enviando...' : 'Enviar link de recuperação'}
                 </button>
               </form>
 
-              <div className="mt-4 text-center">
-                <Link href="/login" className="text-xs text-gray-500 hover:text-gray-700">
-                  ← Voltar para o login
-                </Link>
-              </div>
+              <p className="text-center text-xs text-gray-500 mt-4">
+                Lembrou a senha?{' '}
+                <Link href="/login" className="text-orange-500 hover:underline">Voltar ao login</Link>
+              </p>
             </>
           )}
         </div>
