@@ -1,0 +1,38 @@
+/** @type {import('next-sitemap').IConfig} */
+module.exports = {
+  siteUrl: 'https://autokore.com.br',
+  generateRobotsTxt: true,
+  robotsTxtOptions: {
+    policies: [
+      { userAgent: '*', allow: '/' },
+      { userAgent: '*', disallow: '/dashboard' },
+      { userAgent: '*', disallow: '/master' },
+      { userAgent: '*', disallow: '/os' },
+      { userAgent: '*', disallow: '/clientes' },
+      { userAgent: '*', disallow: '/estoque' },
+      { userAgent: '*', disallow: '/configuracoes' },
+      { userAgent: '*', disallow: '/equipe' },
+      { userAgent: '*', disallow: '/faturamento' },
+      { userAgent: '*', disallow: '/agendamentos' },
+      { userAgent: '*', disallow: '/avaliacoes' },
+      { userAgent: '*', disallow: '/orcamentos' },
+      { userAgent: '*', disallow: '/desempenho' },
+      { userAgent: '*', disallow: '/rede' },
+    ],
+  },
+  exclude: [
+    '/dashboard',
+    '/master',
+    '/os',
+    '/clientes',
+    '/estoque',
+    '/configuracoes',
+    '/equipe',
+    '/faturamento',
+    '/agendamentos',
+    '/avaliacoes',
+    '/orcamentos',
+    '/desempenho',
+    '/rede',
+  ],
+}
