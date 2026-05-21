@@ -199,7 +199,8 @@ export default function EstoquePage() {
 
     for (const linha of dados) {
       try {
-        const cols = linha.split(',')
+        const sep = linha.includes(';') ? ';' : ','
+const cols = linha.split(sep)
         const nome = cols[0]?.trim()
         if (!nome) { erro++; continue }
 
