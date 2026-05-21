@@ -1,15 +1,20 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import {
   LayoutDashboard, ClipboardList, Calendar, Package, DollarSign,
   Users, Settings, LogOut, ChevronRight, BarChart2, UserCheck,
-  Star, FileText, Building2, Menu, X, Sun, Moon,
+  Star, FileText, Building2, Menu, X, Sun, Moon, Bell,
+  CheckCheck, AlertTriangle, CalendarClock, ShoppingBag, MessageSquare,
 } from 'lucide-react'
 import { useAuth } from '@/lib/context/AuthContext'
 import { logout } from '@/lib/firebase/auth'
+import { useNotificacoes } from '@/lib/hooks/useNotificacoes'
+import type { Notificacao } from '@/lib/hooks/useNotificacoes'
+import { formatDistanceToNow } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 interface NavItem { label: string; href: string; icon: React.ReactNode }
 
@@ -30,10 +35,116 @@ const NAV_OP: NavItem[] = [
   { label: 'Configuracoes',     href: '/configuracoes', icon: <Settings      size={17} /> },
 ]
 
+const TIPO_ICON: Record<string, React.ReactNode> = {
+  os:          <ClipboardList size={14} className="text-orange-500" />,
+  agendamento: <CalendarClock size={14} className="text-blue-500" />,
+  estoque:     <ShoppingBag  size={14} className="text-red-500" />,
+  avaliacao:   <Star         size={14} className="text-yellow-500" />,
+  sistema:     <MessageSquare size={14} className="text-gray-500" />,
+}
+
+function NotificacoesPanel() {
+  const [aberto, setAberto] = useState(false)
+  const { notificacoes, naoLidas, marcarLida, marcarTodasLidas } = useNotificacoes()
+  const ref = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setAberto(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function handleNotificacaoClick(n: Notificacao) {
+    marcarLida(n.id)
+    if (n.href) router.push(n.href)
+    setAberto(false)
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setAberto(a => !a)}
+        className="relative w-full flex items-center gap-2 px-2 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+      >
+        <Bell size={15} />
+        <span>Notificacoes</span>
+        {naoLidas > 0 && (
+          <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+            {naoLidas > 9 ? '9+' : naoLidas}
+          </span>
+        )}
+      </button>
+
+      {aberto && (
+        <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl shadow-xl z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-neutral-800">
+            <p className="text-sm font-semibold text-gray-800 dark:text-white">
+              Notificacoes
+              {naoLidas > 0 && (
+                <span className="ml-2 bg-orange-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                  {naoLidas}
+                </span>
+              )}
+            </p>
+            {naoLidas > 0 && (
+              <button
+                onClick={marcarTodasLidas}
+                className="text-xs text-orange-500 hover:underline flex items-center gap-1"
+              >
+                <CheckCheck size={12} />
+                Marcar todas lidas
+              </button>
+            )}
+          </div>
+
+          <div className="max-h-80 overflow-y-auto">
+            {notificacoes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Bell size={24} className="text-gray-300 dark:text-gray-600 mb-2" />
+                <p className="text-sm text-gray-400 dark:text-gray-500">Nenhuma notificacao</p>
+              </div>
+            ) : (
+              notificacoes.map(n => (
+                <button
+                  key={n.id}
+                  onClick={() => handleNotificacaoClick(n)}
+                  className={`w-full text-left px-4 py-3 border-b border-gray-50 dark:border-neutral-800 last:border-0 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors ${
+                    !n.lida ? 'bg-orange-50 dark:bg-orange-950/20' : ''
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 flex-shrink-0">{TIPO_ICON[n.tipo] ?? TIPO_ICON.sistema}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-medium truncate ${!n.lida ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                        {n.titulo}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 line-clamp-2">{n.mensagem}</p>
+                      <p className="text-[10px] text-gray-300 dark:text-gray-600 mt-1">
+                        {formatDistanceToNow(n.createdAt, { addSuffix: true, locale: ptBR })}
+                      </p>
+                    </div>
+                    {!n.lida && (
+                      <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-1" />
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const isDark = theme === 'dark'
-
   return (
     <button
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -102,6 +213,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
             <p className="text-[10px] text-gray-400 truncate">{perfil?.email}</p>
           </div>
         </div>
+        <NotificacoesPanel />
         <ThemeToggle />
         <button
           onClick={handleLogout}
