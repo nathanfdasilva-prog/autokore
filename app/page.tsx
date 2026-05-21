@@ -1,21 +1,57 @@
 'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import Script from 'next/script'
 import './landing.css'
+
+const RECAPTCHA_SITE_KEY = '6LcFufQsAAAACtanHMaZQhEqolT6eoD3xR2bELT'
 
 export default function LandingPage() {
   const [nome, setNome] = useState('')
   const [tel, setTel] = useState('')
   const [msg, setMsg] = useState('🔒 Seus dados são privados. Não enviamos spam.')
+  const [enviando, setEnviando] = useState(false)
 
-  function capturarLead() {
-    if (!nome || !tel) { setMsg('⚠️ Preencha seu nome e WhatsApp.'); return }
-    setMsg(`✅ Obrigado, ${nome}! Te avisaremos em breve.`)
-    setNome(''); setTel('')
-  }
+  const capturarLead = useCallback(async () => {
+    if (!nome.trim() || !tel.trim()) {
+      setMsg('⚠️ Preencha seu nome e WhatsApp.')
+      return
+    }
+
+    const telLimpo = tel.replace(/\D/g, '')
+    if (telLimpo.length < 10) {
+      setMsg('⚠️ Digite um WhatsApp valido com DDD.')
+      return
+    }
+
+    setEnviando(true)
+
+    try {
+      if (typeof window !== 'undefined' && (window as any).grecaptcha) {
+        await new Promise<void>((resolve) => {
+          (window as any).grecaptcha.ready(resolve)
+        })
+        const token = await (window as any).grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'lead_form' })
+        if (!token) throw new Error('reCAPTCHA falhou')
+      }
+
+      setMsg(`✅ Obrigado, ${nome}! Te avisaremos em breve.`)
+      setNome('')
+      setTel('')
+    } catch (e) {
+      setMsg('❌ Erro ao enviar. Tente novamente.')
+    } finally {
+      setEnviando(false)
+    }
+  }, [nome, tel])
 
   return (
     <div className="lp-wrap">
+      <Script
+        src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`}
+        strategy="lazyOnload"
+      />
+
       <nav className="lp-nav">
         <div className="lp-nav-inner">
           <div className="lp-logo"><span>Auto</span>Kore</div>
@@ -210,11 +246,16 @@ export default function LandingPage() {
           <h2 className="section-title">Quer ser avisado das novidades?</h2>
           <p style={{color:'#9CA3AF',marginTop:'12px'}}>Deixe seu WhatsApp e te avisamos sobre atualizacoes e novos recursos.</p>
           <div className="lead-form">
-            <input className="lead-input" type="text" placeholder="Seu nome" value={nome} onChange={e => setNome(e.target.value)} />
-            <input className="lead-input" type="tel" placeholder="WhatsApp (11) 99999-9999" value={tel} onChange={e => setTel(e.target.value)} />
-            <button className="btn-primary" onClick={capturarLead}>Quero ser avisado</button>
+            <input className="lead-input" type="text" placeholder="Seu nome" value={nome} onChange={e => setNome(e.target.value)} disabled={enviando} />
+            <input className="lead-input" type="tel" placeholder="WhatsApp (11) 99999-9999" value={tel} onChange={e => setTel(e.target.value)} disabled={enviando} />
+            <button className="btn-primary" onClick={capturarLead} disabled={enviando} style={{opacity: enviando ? 0.7 : 1}}>
+              {enviando ? 'Enviando...' : 'Quero ser avisado'}
+            </button>
           </div>
           <div className="lead-note">{msg}</div>
+          <p style={{fontSize:'11px',color:'#4B5563',marginTop:'8px'}}>
+            Protegido por reCAPTCHA — <a href="https://policies.google.com/privacy" style={{color:'#6B7280'}}>Privacidade</a> e <a href="https://policies.google.com/terms" style={{color:'#6B7280'}}>Termos</a>
+          </p>
         </div>
       </section>
 
