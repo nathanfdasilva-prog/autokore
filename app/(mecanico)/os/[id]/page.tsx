@@ -25,10 +25,10 @@ const STATUS_CLS: Record<StatusOS, string> = {
 export default function OSDetalhePage({ params }: { params: { id: string } }) {
   const { id }              = params
   const { os, loading }     = useOS(id)
-  const { perfil, isAdmin } = useAuth()
+  const { perfil, isAdmin, oficina } = useAuth()
 
-  const oficinaNome = perfil?.oficina_nome ?? 'Oficina'
-  const oficinaTel  = perfil?.whatsapp ?? ''
+const oficinaNome = oficina?.nome ?? 'Oficina'
+const oficinaTel  = oficina?.whatsapp ?? ''
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!os) return <div className="text-center py-20"><p className="text-gray-500">OS não encontrada.</p><Link href="/os" className="btn-primary mt-4 inline-flex">Voltar</Link></div>

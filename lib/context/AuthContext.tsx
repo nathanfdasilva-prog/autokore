@@ -1,43 +1,35 @@
 'use client'
-// ============================================================
-// AUTH CONTEXT — lib/context/AuthContext.tsx
-// Estado global de autenticação acessível em todo o app.
-// ============================================================
-
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
+  createContext, useContext, useEffect, useState, ReactNode,
 } from 'react'
 import { onAuthStateChanged, User } from 'firebase/auth'
-import { auth } from '../firebase/config'
+import { auth, db } from '../firebase/config'
 import { buscarPerfil } from '../firebase/auth'
-import type { Usuario } from '../types'
+import { doc, getDoc } from 'firebase/firestore'
+import type { Usuario, Oficina } from '../types'
 
-// ---------- Tipos do contexto ----------
 interface AuthContextType {
-  user:       User | null          // objeto Firebase Auth
-  perfil:     Usuario | null       // dados do Firestore
+  user:       User | null
+  perfil:     Usuario | null
+  oficina:    Oficina | null
   loading:    boolean
   isAdmin:    boolean
   isMecanico: boolean
 }
 
-// ---------- Contexto ----------
 const AuthContext = createContext<AuthContextType>({
   user:       null,
   perfil:     null,
+  oficina:    null,
   loading:    true,
   isAdmin:    false,
   isMecanico: false,
 })
 
-// ---------- Provider ----------
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,    setUser]    = useState<User | null>(null)
   const [perfil,  setPerfil]  = useState<Usuario | null>(null)
+  const [oficina, setOficina] = useState<Oficina | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -46,13 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(firebaseUser)
         const dados = await buscarPerfil(firebaseUser)
         setPerfil(dados)
+        if (dados?.oficina_id) {
+          const snap = await getDoc(doc(db, 'oficinas', dados.oficina_id))
+          if (snap.exists()) {
+            setOficina({ id: snap.id, ...snap.data() } as Oficina)
+          }
+        }
       } else {
         setUser(null)
         setPerfil(null)
+        setOficina(null)
       }
       setLoading(false)
     })
-
     return () => unsubscribe()
   }, [])
 
@@ -60,13 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isMecanico = perfil?.role === 'mecanico' || isAdmin
 
   return (
-    <AuthContext.Provider value={{ user, perfil, loading, isAdmin, isMecanico }}>
+    <AuthContext.Provider value={{ user, perfil, oficina, loading, isAdmin, isMecanico }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-// ---------- Hook ----------
 export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth deve ser usado dentro de <AuthProvider>')
