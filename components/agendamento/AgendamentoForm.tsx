@@ -1,13 +1,11 @@
 'use client'
-// ============================================================
-// FORMULÁRIO DE AGENDAMENTO — components/agendamento/AgendamentoForm.tsx
-// ============================================================
-
 import { useState } from 'react'
-import { X, Calendar, Phone, Car, Bike, Clock } from 'lucide-react'
-import { format, addDays, setHours, setMinutes } from 'date-fns'
+import { X, Calendar, Phone, Car, Bike, Clock, Trash2 } from 'lucide-react'
+import { format, setHours, setMinutes } from 'date-fns'
 import { criarAgendamento, editarAgendamento } from '@/lib/hooks/useAgendamentos'
 import { useAuth } from '@/lib/context/AuthContext'
+import { doc, deleteDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase/config'
 import type { Agendamento } from '@/lib/types'
 
 const HORARIOS = [
@@ -31,16 +29,12 @@ const SERVICOS = [
 ]
 
 interface AgendamentoFormProps {
-  onClose:          () => void
-  dataInicial?:     Date
-  agendamento?:     Agendamento | null   // se fornecido → edição
+  onClose:      () => void
+  dataInicial?: Date
+  agendamento?: Agendamento | null
 }
 
-export default function AgendamentoForm({
-  onClose,
-  dataInicial,
-  agendamento,
-}: AgendamentoFormProps) {
+export default function AgendamentoForm({ onClose, dataInicial, agendamento }: AgendamentoFormProps) {
   const { perfil } = useAuth()
 
   const parseDataHora = (dh: Date) => ({
@@ -64,8 +58,10 @@ export default function AgendamentoForm({
     observacoes:      agendamento?.observacoes       ?? '',
   })
 
-  const [salvando, setSalvando] = useState(false)
-  const [erro,     setErro]     = useState('')
+  const [salvando,        setSalvando]        = useState(false)
+  const [erro,            setErro]            = useState('')
+  const [confirmDeletar,  setConfirmDeletar]  = useState(false)
+  const [deletando,       setDeletando]       = useState(false)
 
   function setField(k: keyof typeof form, v: string) {
     setForm(f => ({ ...f, [k]: v }))
@@ -87,7 +83,6 @@ export default function AgendamentoForm({
     setSalvando(true)
     try {
       const data_hora = buildDataHora()
-
       if (agendamento) {
         await editarAgendamento(agendamento.id, {
           cliente_nome:     form.cliente_nome,
@@ -118,12 +113,25 @@ export default function AgendamentoForm({
     }
   }
 
+  async function handleDeletar() {
+    if (!agendamento) return
+    setDeletando(true)
+    try {
+      await deleteDoc(doc(db, 'agendamentos', agendamento.id))
+      onClose()
+    } catch (e: any) {
+      setErro(e.message)
+    } finally {
+      setDeletando(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        {/* Header modal */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
-          <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="text-base font-bold text-gray-800 dark:text-white flex items-center gap-2">
             <Calendar size={17} className="text-orange-500" />
             {agendamento ? 'Editar agendamento' : 'Novo agendamento'}
           </h2>
@@ -134,26 +142,19 @@ export default function AgendamentoForm({
 
         <div className="px-6 py-5 space-y-4">
           {erro && (
-            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {erro}
-            </p>
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{erro}</p>
           )}
 
-          {/* Tipo de veículo */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de veículo</label>
             <div className="flex gap-2">
               {(['carro', 'moto'] as const).map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setField('tipo_veiculo', t)}
+                <button key={t} type="button" onClick={() => setField('tipo_veiculo', t)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition ${
                     form.tipo_veiculo === t
                       ? 'border-orange-400 bg-orange-50 text-orange-700'
                       : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
+                  }`}>
                   {t === 'carro' ? <Car size={14} /> : <Bike size={14} />}
                   {t === 'carro' ? 'Carro' : 'Moto'}
                 </button>
@@ -161,122 +162,81 @@ export default function AgendamentoForm({
             </div>
           </div>
 
-          {/* Cliente */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Nome do cliente <span className="text-red-500">*</span>
-              </label>
-              <input
-                value={form.cliente_nome}
-                onChange={e => setField('cliente_nome', e.target.value)}
-                placeholder="João Silva"
-                className="input-base"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nome do cliente <span className="text-red-500">*</span></label>
+              <input value={form.cliente_nome} onChange={e => setField('cliente_nome', e.target.value)} placeholder="João Silva" className="input-base" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
-                <Phone size={11} /> WhatsApp <span className="text-red-500">*</span>
-              </label>
-              <input
-                value={form.cliente_whatsapp}
-                onChange={e => setField('cliente_whatsapp', e.target.value)}
-                placeholder="(69) 9 9999-9999"
-                className="input-base"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp <span className="text-red-500">*</span></label>
+              <input value={form.cliente_whatsapp} onChange={e => setField('cliente_whatsapp', e.target.value)} placeholder="(69) 9 9999-9999" className="input-base" />
             </div>
           </div>
 
-          {/* Veículo */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Veículo <span className="text-red-500">*</span>
-              </label>
-              <input
-                value={form.veiculo}
-                onChange={e => setField('veiculo', e.target.value)}
-                placeholder="VW Gol G5 2014"
-                className="input-base"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Veículo <span className="text-red-500">*</span></label>
+              <input value={form.veiculo} onChange={e => setField('veiculo', e.target.value)} placeholder="VW Gol G5 2014" className="input-base" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Placa <span className="text-red-500">*</span>
-              </label>
-              <input
-                value={form.placa}
-                onChange={e => setField('placa', e.target.value.toUpperCase())}
-                placeholder="ABC-1234"
-                maxLength={8}
-                className="input-base uppercase font-mono"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Placa <span className="text-red-500">*</span></label>
+              <input value={form.placa} onChange={e => setField('placa', e.target.value.toUpperCase())} placeholder="ABC-1234" maxLength={8} className="input-base uppercase font-mono" />
             </div>
           </div>
 
-          {/* Serviço */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Serviço</label>
-            <select
-              value={form.servico}
-              onChange={e => setField('servico', e.target.value)}
-              className="input-base"
-            >
+            <select value={form.servico} onChange={e => setField('servico', e.target.value)} className="input-base">
               {SERVICOS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
-          {/* Data + Horário */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Data <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={form.data}
-                min={format(new Date(), 'yyyy-MM-dd')}
-                onChange={e => setField('data', e.target.value)}
-                className="input-base"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Data <span className="text-red-500">*</span></label>
+              <input type="date" value={form.data} min={format(new Date(), 'yyyy-MM-dd')} onChange={e => setField('data', e.target.value)} className="input-base" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
-                <Clock size={11} /> Horário <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={form.horario}
-                onChange={e => setField('horario', e.target.value)}
-                className="input-base"
-              >
+              <label className="block text-xs font-medium text-gray-600 mb-1">Horário <span className="text-red-500">*</span></label>
+              <select value={form.horario} onChange={e => setField('horario', e.target.value)} className="input-base">
                 {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
               </select>
             </div>
           </div>
 
-          {/* Observações */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Observações
-            </label>
-            <textarea
-              value={form.observacoes}
-              onChange={e => setField('observacoes', e.target.value)}
-              rows={2}
-              placeholder="Detalhes adicionais..."
-              className="input-base resize-none"
-            />
+            <label className="block text-xs font-medium text-gray-600 mb-1">Observações</label>
+            <textarea value={form.observacoes} onChange={e => setField('observacoes', e.target.value)} rows={2} placeholder="Detalhes adicionais..." className="input-base resize-none" />
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Confirmação de exclusão */}
+        {confirmDeletar && (
+          <div className="mx-6 mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-sm font-semibold text-red-700 mb-1">Excluir agendamento?</p>
+            <p className="text-xs text-red-500 mb-3">Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDeletar(false)} className="flex-1 py-2 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition">
+                Cancelar
+              </button>
+              <button onClick={handleDeletar} disabled={deletando}
+                className="flex-1 py-2 text-xs bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition disabled:opacity-50">
+                {deletando ? 'Excluindo...' : 'Sim, excluir'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-3 px-6 pb-5">
+          {agendamento && !confirmDeletar && (
+            <button onClick={() => setConfirmDeletar(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 border border-red-200 hover:bg-red-50 rounded-xl transition">
+              <Trash2 size={14} />
+              Excluir
+            </button>
+          )}
           <button onClick={onClose} className="btn-ghost flex-1">Cancelar</button>
-          <button
-            onClick={handleSalvar}
-            disabled={salvando}
-            className="btn-primary flex-1"
-          >
+          <button onClick={handleSalvar} disabled={salvando} className="btn-primary flex-1">
             {salvando ? 'Salvando...' : agendamento ? 'Salvar alterações' : 'Criar agendamento'}
           </button>
         </div>
