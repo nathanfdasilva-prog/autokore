@@ -19,7 +19,24 @@ export interface Usuario {
 // ---------- OFICINA ----------
 export type Plano = 'basico' | 'pro' | 'premium'
 
+// ---------- OFICINA ----------
+export type Plano = 'basico' | 'pro' | 'premium'
+
 export interface Oficina {
+  id:                string
+  nome:              string
+  cnpj?:             string
+  endereco?:         string
+  whatsapp?:         string
+  plano:             Plano
+  dono_uid:          string
+  ativo:             boolean
+  createdAt:         Date
+  assinatura_ativa?: boolean
+  asaas_id?:         string
+  assinatura_id?:    string
+  trial_ate?:        Date
+}
   id: string
   nome: string
   cnpj?: string
