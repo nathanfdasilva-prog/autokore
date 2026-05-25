@@ -13,31 +13,18 @@ export default function LandingPage() {
   const [enviando, setEnviando] = useState(false)
 
   const capturarLead = useCallback(async () => {
-    if (!nome.trim() || !tel.trim()) {
-      setMsg('⚠️ Preencha seu nome e WhatsApp.')
-      return
-    }
-
+    if (!nome.trim() || !tel.trim()) { setMsg('⚠️ Preencha seu nome e WhatsApp.'); return }
     const telLimpo = tel.replace(/\D/g, '')
-    if (telLimpo.length < 10) {
-      setMsg('⚠️ Digite um WhatsApp valido com DDD.')
-      return
-    }
-
+    if (telLimpo.length < 10) { setMsg('⚠️ Digite um WhatsApp valido com DDD.'); return }
     setEnviando(true)
-
     try {
       if (typeof window !== 'undefined' && (window as any).grecaptcha) {
-        await new Promise<void>((resolve) => {
-          (window as any).grecaptcha.ready(resolve)
-        })
+        await new Promise<void>((resolve) => { (window as any).grecaptcha.ready(resolve) })
         const token = await (window as any).grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'lead_form' })
         if (!token) throw new Error('reCAPTCHA falhou')
       }
-
       setMsg(`✅ Obrigado, ${nome}! Te avisaremos em breve.`)
-      setNome('')
-      setTel('')
+      setNome(''); setTel('')
     } catch (e) {
       setMsg('❌ Erro ao enviar. Tente novamente.')
     } finally {
@@ -47,11 +34,9 @@ export default function LandingPage() {
 
   return (
     <div className="lp-wrap">
-      <Script
-        src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`}
-        strategy="lazyOnload"
-      />
+      <Script src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`} strategy="lazyOnload" />
 
+      {/* NAV */}
       <nav className="lp-nav">
         <div className="lp-nav-inner">
           <div className="lp-logo"><span>Auto</span>Kore</div>
@@ -59,11 +44,13 @@ export default function LandingPage() {
             <a href="#funcionalidades">Funcionalidades</a>
             <a href="#como-funciona">Como funciona</a>
             <a href="#planos">Planos</a>
+            <a href="#faq">FAQ</a>
             <Link href="/login" className="btn-nav">Entrar</Link>
           </div>
         </div>
       </nav>
 
+      {/* HERO */}
       <section className="lp-hero">
         <div className="lp-hero-inner">
           <div>
@@ -75,9 +62,7 @@ export default function LandingPage() {
               <a href="#planos" className="btn-secondary">Ver planos</a>
             </div>
             <div className="lp-trust">
-              <div className="trust-avatars">
-                <span>KL</span><span>MS</span><span>RB</span><span>+</span>
-              </div>
+              <div className="trust-avatars"><span>KL</span><span>MS</span><span>RB</span><span>+</span></div>
               <div className="trust-text"><strong>Oficinas ativas</strong> usando o AutoKore hoje</div>
             </div>
           </div>
@@ -88,10 +73,7 @@ export default function LandingPage() {
                 <div className="mockup-url">autokore.vercel.app/dashboard</div>
               </div>
               <div className="mockup-body">
-                <div className="dash-header">
-                  <div className="dash-title">Dashboard</div>
-                  <div className="dash-date">Maio 2026</div>
-                </div>
+                <div className="dash-header"><div className="dash-title">Dashboard</div><div className="dash-date">Maio 2026</div></div>
                 <div className="kpis">
                   <div className="kpi"><div className="kpi-label">OS Abertas</div><div className="kpi-val orange">12</div><div className="kpi-change">↑ 3 hoje</div></div>
                   <div className="kpi"><div className="kpi-label">Faturamento</div><div className="kpi-val">R$18k</div><div className="kpi-change">↑ 12%</div></div>
@@ -99,33 +81,18 @@ export default function LandingPage() {
                   <div className="kpi"><div className="kpi-label">NPS</div><div className="kpi-val orange">94</div><div className="kpi-change">Excelente</div></div>
                 </div>
                 <div className="os-list">
-                  <div className="os-item">
-                    <div className="os-info"><span className="os-name">Joao Pereira</span><span className="os-car">Corolla 2022 - Troca de oleo</span></div>
-                    <span className="os-badge badge-green">Concluido</span>
-                    <span className="os-val">R$320</span>
-                  </div>
-                  <div className="os-item">
-                    <div className="os-info"><span className="os-name">Maria Santos</span><span className="os-car">HB20 2021 - Revisao</span></div>
-                    <span className="os-badge badge-yellow">Em andamento</span>
-                    <span className="os-val">R$580</span>
-                  </div>
-                  <div className="os-item">
-                    <div className="os-info"><span className="os-name">Carlos Lima</span><span className="os-car">Onix 2023 - Freios</span></div>
-                    <span className="os-badge badge-blue">Agendado</span>
-                    <span className="os-val">R$450</span>
-                  </div>
+                  <div className="os-item"><div className="os-info"><span className="os-name">Joao Pereira</span><span className="os-car">Corolla 2022 - Troca de oleo</span></div><span className="os-badge badge-green">Concluido</span><span className="os-val">R$320</span></div>
+                  <div className="os-item"><div className="os-info"><span className="os-name">Maria Santos</span><span className="os-car">HB20 2021 - Revisao</span></div><span className="os-badge badge-yellow">Em andamento</span><span className="os-val">R$580</span></div>
+                  <div className="os-item"><div className="os-info"><span className="os-name">Carlos Lima</span><span className="os-car">Onix 2023 - Freios</span></div><span className="os-badge badge-blue">Agendado</span><span className="os-val">R$450</span></div>
                 </div>
               </div>
             </div>
-            <div className="floating-card">
-              <div className="fc-label">Faturamento do mes</div>
-              <div className="fc-val">R$18.420</div>
-              <div className="fc-sub">↑ 12% vs mes anterior</div>
-            </div>
+            <div className="floating-card"><div className="fc-label">Faturamento do mes</div><div className="fc-val">R$18.420</div><div className="fc-sub">↑ 12% vs mes anterior</div></div>
           </div>
         </div>
       </section>
 
+      {/* LOGOS */}
       <div className="logos-section">
         <div className="logos-inner">
           <div className="logos-label">Tecnologia confiavel por baixo</div>
@@ -139,6 +106,7 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* FUNCIONALIDADES */}
       <section className="lp-section" id="funcionalidades">
         <div className="lp-section-inner">
           <div className="section-label">Funcionalidades</div>
@@ -163,6 +131,29 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* DEPOIMENTOS */}
+      <section className="lp-section" style={{background:'#0a0a0a'}}>
+        <div className="lp-section-inner">
+          <div className="section-label">Depoimentos</div>
+          <h2 className="section-title">O que dizem nossas oficinas</h2>
+          <div className="features-grid">
+            {[
+              {nome:'Carlos Souza',oficina:'CS Mecânica — Cacoal/RO',nota:'⭐⭐⭐⭐⭐',texto:'Antes eu anotava tudo em caderno. Hoje controlo minhas OS, estoque e clientes pelo celular. Melhorou muito minha organização!'},
+              {nome:'Ana Lima',oficina:'Auto Center Lima — Ji-Paraná/RO',nota:'⭐⭐⭐⭐⭐',texto:'O sistema de agendamento me ajudou a acabar com os conflitos de horário. Meus clientes adoram receber a confirmação pelo WhatsApp.'},
+              {nome:'Roberto Alves',oficina:'Oficina Alves — Porto Velho/RO',nota:'⭐⭐⭐⭐⭐',texto:'Em menos de uma semana já estava usando tudo. O suporte é excelente e o sistema é muito intuitivo. Recomendo!'},
+            ].map((d,i) => (
+              <div className="feat-card" key={i}>
+                <div style={{fontSize:'18px',marginBottom:'8px'}}>{d.nota}</div>
+                <div style={{color:'#d1d5db',fontSize:'14px',fontStyle:'italic',marginBottom:'12px'}}>"{d.texto}"</div>
+                <div style={{color:'#E85D04',fontWeight:700,fontSize:'13px'}}>{d.nome}</div>
+                <div style={{color:'#6b7280',fontSize:'12px'}}>{d.oficina}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* COMO FUNCIONA */}
       <section className="lp-how" id="como-funciona">
         <div className="lp-section-inner">
           <div className="section-label">Como funciona</div>
@@ -184,6 +175,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* PLANOS */}
       <section className="lp-section" id="planos">
         <div className="lp-section-inner">
           <div className="section-label">Planos</div>
@@ -203,7 +195,7 @@ export default function LandingPage() {
                 <li className="off">Relatorios financeiros</li>
                 <li className="off">Suporte prioritario</li>
               </ul>
-              <Link href="/registro" className="btn-plan btn-plan-outline">Criar conta gratis</Link>
+              <Link href="/registro" className="btn-plan btn-plan-filled">Começar grátis agora</Link>
             </div>
             <div className="plan popular">
               <div className="popular-badge">Mais popular</div>
@@ -234,12 +226,36 @@ export default function LandingPage() {
                 <li>API de integracao</li>
                 <li>Suporte dedicado</li>
               </ul>
-              <Link href="/registro" className="btn-plan btn-plan-outline">Falar com vendas</Link>
+              <a href="https://wa.me/5569999999999?text=Olá!%20Tenho%20interesse%20no%20plano%20Rede%20do%20AutoKore." target="_blank" rel="noopener noreferrer" className="btn-plan btn-plan-outline">Falar com vendas</a>
             </div>
           </div>
         </div>
       </section>
 
+      {/* FAQ */}
+      <section className="lp-section" id="faq">
+        <div className="lp-section-inner">
+          <div className="section-label">FAQ</div>
+          <h2 className="section-title">Perguntas frequentes</h2>
+          <div style={{maxWidth:'680px',margin:'0 auto',display:'flex',flexDirection:'column',gap:'16px'}}>
+            {[
+              {p:'Como funciona o período grátis?',r:'Durante a fase beta o AutoKore é totalmente gratuito para todos os usuários. Você tem acesso completo ao sistema sem precisar de cartão de crédito. Quando lançarmos os planos pagos, você será avisado com antecedência.'},
+              {p:'Preciso instalar algum programa?',r:'Não! O AutoKore funciona direto no navegador do celular ou computador. Você também pode instalar como app (PWA) na tela inicial do seu celular.'},
+              {p:'Meus dados ficam seguros?',r:'Sim! Utilizamos Firebase do Google com criptografia de dados e autenticação segura. Seus dados ficam protegidos e nunca são compartilhados.'},
+              {p:'Posso usar no celular?',r:'Sim! O AutoKore foi desenvolvido para funcionar perfeitamente no celular. Você consegue criar OS, consultar clientes e ver relatórios de qualquer lugar.'},
+              {p:'O que acontece após o período beta?',r:'Você receberá um aviso por e-mail antes de qualquer cobrança. Poderá escolher continuar no plano grátis (com limitações) ou fazer upgrade para um plano pago. Nada muda sem seu consentimento.'},
+              {p:'Posso cancelar quando quiser?',r:'Sim! Não há fidelidade. Você pode cancelar sua assinatura a qualquer momento direto pelo sistema.'},
+            ].map((f,i) => (
+              <div key={i} style={{background:'#111',border:'1px solid #222',borderRadius:'12px',padding:'20px'}}>
+                <div style={{color:'#E85D04',fontWeight:700,fontSize:'15px',marginBottom:'8px'}}>❓ {f.p}</div>
+                <div style={{color:'#9ca3af',fontSize:'14px',lineHeight:'1.6'}}>{f.r}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* LEAD */}
       <section className="lp-lead">
         <div className="lead-inner">
           <div className="section-label" style={{textAlign:'center'}}>Lista de espera</div>
@@ -259,12 +275,14 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FOOTER */}
       <footer className="lp-footer">
         <div className="footer-inner">
           <div className="footer-logo"><span>Auto</span>Kore</div>
           <div className="footer-links">
             <a href="#funcionalidades">Funcionalidades</a>
             <a href="#planos">Planos</a>
+            <a href="#faq">FAQ</a>
             <Link href="/login">Entrar</Link>
             <Link href="/registro">Cadastrar</Link>
           </div>
