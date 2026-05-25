@@ -10,23 +10,23 @@ const PLANOS = [
   {
     id:       'basico' as const,
     nome:     'Básico',
-    preco:    'R$97',
-    periodo:  '/mês',
+    preco:    'Grátis',
+    periodo:  '',
     destaque: false,
-    recursos: ['OS ilimitadas','Até 2 mecânicos','Clientes e veículos','Agendamentos','Suporte por e-mail'],
+    recursos: ['Até 30 OS por mês','1 usuário','Clientes e veículos','Agendamentos','Suporte por e-mail'],
   },
   {
     id:       'pro' as const,
     nome:     'Profissional',
-    preco:    'R$197',
+    preco:    'R$97',
     periodo:  '/mês',
     destaque: true,
-    recursos: ['Tudo do Básico','Até 5 mecânicos','Estoque completo','Relatórios financeiros','NPS e avaliações','Suporte prioritário'],
+    recursos: ['OS ilimitadas','Até 5 mecânicos','Estoque completo','Relatórios financeiros','NPS e avaliações','Suporte prioritário'],
   },
   {
     id:       'premium' as const,
     nome:     'Premium',
-    preco:    'R$297',
+    preco:    'R$247',
     periodo:  '/mês',
     destaque: false,
     recursos: ['Tudo do Pro','Mecânicos ilimitados','Múltiplas unidades','API e integrações','Suporte 24h'],
@@ -59,6 +59,16 @@ export default function AssinarPage() {
 
   async function handleAssinar() {
     if (!perfil) return
+    if (planoSel === 'basico') {
+      await updateDoc(doc(db, 'oficinas', perfil.oficina_id), {
+        plano: 'basico',
+        assinatura_ativa: true,
+      })
+      setSucesso(true)
+      setTimeout(() => router.replace('/dashboard'), 3000)
+      return
+    }
+
     setLoading(true)
     setErro('')
 
@@ -107,7 +117,7 @@ export default function AssinarPage() {
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Check size={32} className="text-green-500" />
         </div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Assinatura criada!</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Plano ativado!</h2>
         <p className="text-gray-500">Redirecionando para o dashboard...</p>
       </div>
     </div>
@@ -149,25 +159,27 @@ export default function AssinarPage() {
           ))}
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 mb-5">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Forma de pagamento</p>
-          <div className="flex gap-3">
-            {([
-              { val: 'PIX',         label: '💸 PIX' },
-              { val: 'CREDIT_CARD', label: '💳 Cartão' },
-              { val: 'BOLETO',      label: '📄 Boleto' },
-            ] as const).map(p => (
-              <button key={p.val} onClick={() => setPagamento(p.val)}
-                className={`flex-1 py-2.5 rounded-xl border text-sm font-medium transition ${
-                  pagamento === p.val
-                    ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/30 text-orange-700'
-                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50'
-                }`}>
-                {p.label}
-              </button>
-            ))}
+        {planoSel !== 'basico' && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 mb-5">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Forma de pagamento</p>
+            <div className="flex gap-3">
+              {([
+                { val: 'PIX',         label: '💸 PIX' },
+                { val: 'CREDIT_CARD', label: '💳 Cartão' },
+                { val: 'BOLETO',      label: '📄 Boleto' },
+              ] as const).map(p => (
+                <button key={p.val} onClick={() => setPagamento(p.val)}
+                  className={`flex-1 py-2.5 rounded-xl border text-sm font-medium transition ${
+                    pagamento === p.val
+                      ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/30 text-orange-700'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50'
+                  }`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {erro && (
           <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">{erro}</p>
@@ -177,7 +189,9 @@ export default function AssinarPage() {
           className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl transition disabled:opacity-50 flex items-center justify-center gap-2 text-base">
           {loading
             ? <><Loader size={18} className="animate-spin" />Processando...</>
-            : `Assinar plano ${PLANOS.find(p => p.id === planoSel)?.nome} →`}
+            : planoSel === 'basico'
+              ? 'Começar grátis →'
+              : `Assinar plano ${PLANOS.find(p => p.id === planoSel)?.nome} →`}
         </button>
 
         <p className="text-center text-xs text-gray-400 mt-4">
