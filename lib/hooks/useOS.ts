@@ -1,9 +1,4 @@
 'use client'
-// ============================================================
-// HOOK useOS — lib/hooks/useOS.ts
-// CRUD completo de Ordens de Serviço + baixa de estoque.
-// ============================================================
-
 import { useState, useEffect } from 'react'
 import {
   collection, query, where, orderBy, onSnapshot,
@@ -15,10 +10,6 @@ import { baixarEstoque } from './useEstoque'
 import type { OrdemServico, StatusOS, ItemOS } from '../types'
 import { useAuth } from '../context/AuthContext'
 
-// ----------------------------------------------------------
-// Hook: lista as OS do mecânico logado em tempo real
-// Admin vê todas da oficina
-// ----------------------------------------------------------
 export function useMinhasOS() {
   const { perfil, isAdmin } = useAuth()
   const [ordens,  setOrdens]  = useState<OrdemServico[]>([])
@@ -33,7 +24,6 @@ export function useMinhasOS() {
       orderBy('createdAt', 'desc'),
     ]
 
-    // Mecânico vê apenas as próprias OS
     if (!isAdmin) {
       constraints.splice(1, 0, where('mecanico_id', '==', perfil.uid))
     }
@@ -41,14 +31,8 @@ export function useMinhasOS() {
     const q = query(collection(db, 'ordens_servico'), ...constraints)
 
     const unsub = onSnapshot(q,
-      snap => {
-        setOrdens(snap.docs.map(d => docToData<OrdemServico>(d)))
-        setLoading(false)
-      },
-      err => {
-        setErro(err.message)
-        setLoading(false)
-      },
+      snap => { setOrdens(snap.docs.map(d => docToData<OrdemServico>(d))); setLoading(false) },
+      err  => { setErro(err.message); setLoading(false) },
     )
 
     return () => unsub()
@@ -57,9 +41,6 @@ export function useMinhasOS() {
   return { ordens, loading, erro }
 }
 
-// ----------------------------------------------------------
-// Hook: busca uma OS específica por ID
-// ----------------------------------------------------------
 export function useOS(id: string) {
   const [os,      setOS]      = useState<OrdemServico | null>(null)
   const [loading, setLoading] = useState(true)
@@ -76,9 +57,6 @@ export function useOS(id: string) {
   return { os, loading }
 }
 
-// ----------------------------------------------------------
-// Gerar próximo número de OS (sequencial por oficina)
-// ----------------------------------------------------------
 async function proximoNumeroOS(oficina_id: string): Promise<number> {
   const q = query(
     collection(db, 'ordens_servico'),
@@ -91,9 +69,6 @@ async function proximoNumeroOS(oficina_id: string): Promise<number> {
   return ultimo + 1
 }
 
-// ----------------------------------------------------------
-// Criar nova OS
-// ----------------------------------------------------------
 export async function criarOS(dados: {
   oficina_id:          string
   cliente_nome:        string
@@ -112,35 +87,36 @@ export async function criarOS(dados: {
   const ref = await addDoc(collection(db, 'ordens_servico'), {
     ...dados,
     numero,
-    status:          'aberta' as StatusOS,
-    itens:           [],
-    valor_pecas:     0,
-    valor_mao_obra:  0,
-    valor_total:     0,
+    status:               'aberta' as StatusOS,
+    itens:                [],
+    valor_pecas:          0,
+    valor_mao_obra:       0,
+    valor_total:          0,
     observacoes_internas: '',
-    createdAt:       serverTimestamp(),
-    updatedAt:       serverTimestamp(),
+    createdAt:            serverTimestamp(),
+    updatedAt:            serverTimestamp(),
   })
 
   return ref.id
 }
 
-// ----------------------------------------------------------
-// Atualizar status da OS
-// ----------------------------------------------------------
-export async function atualizarStatusOS(
-  os_id:  string,
-  status: StatusOS,
-) {
+export async function atualizarStatusOS(os_id: string, status: StatusOS) {
   await updateDoc(doc(db, 'ordens_servico', os_id), {
     status,
     updatedAt: serverTimestamp(),
   })
 }
 
-// ----------------------------------------------------------
-// Salvar itens/peças na OS (rascunho)
-// ----------------------------------------------------------
+export async function atualizarOS(
+  os_id: string,
+  dados: Record<string, any>,
+) {
+  await updateDoc(doc(db, 'ordens_servico', os_id), {
+    ...dados,
+    updatedAt: serverTimestamp(),
+  })
+}
+
 export async function salvarItensOS(
   os_id: string,
   itens: ItemOS[],
@@ -158,10 +134,6 @@ export async function salvarItensOS(
   })
 }
 
-// ----------------------------------------------------------
-// FINALIZAR OS — baixa de estoque + atualização de status
-// Esta é a operação principal com transação atômica.
-// ----------------------------------------------------------
 export async function finalizarOS(params: {
   os_id:           string
   oficina_id:      string
@@ -177,7 +149,6 @@ export async function finalizarOS(params: {
     itens, valor_mao_obra, forma_pagamento, observacoes,
   } = params
 
-  // 1. Baixa de estoque (transação atômica)
   if (itens.length > 0) {
     await baixarEstoque({
       oficina_id,
@@ -192,19 +163,18 @@ export async function finalizarOS(params: {
     })
   }
 
-  // 2. Atualiza a OS como concluída
   const valor_pecas = itens.reduce((s, i) => s + i.subtotal, 0)
   const valor_total = valor_pecas + valor_mao_obra
 
   await updateDoc(doc(db, 'ordens_servico', os_id), {
-    status:           'concluida' as StatusOS,
+    status:               'concluida' as StatusOS,
     itens,
     valor_pecas,
     valor_mao_obra,
     valor_total,
     forma_pagamento,
     observacoes_internas: observacoes ?? '',
-    finalizadaAt:    serverTimestamp(),
-    updatedAt:       serverTimestamp(),
+    finalizadaAt:         serverTimestamp(),
+    updatedAt:            serverTimestamp(),
   })
 }
