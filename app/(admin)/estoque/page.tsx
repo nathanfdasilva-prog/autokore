@@ -36,6 +36,7 @@ const FORM_VAZIO = {
   preco_venda:       0,
   fornecedor:        '',
   descricao:         '',
+  localizacao:       '',
 }
 
 export default function EstoquePage() {
@@ -82,8 +83,9 @@ export default function EstoquePage() {
       quantidade_minima: item.quantidade_minima,
       preco_custo:       item.preco_custo,
       preco_venda:       item.preco_venda,
-      fornecedor:        item.fornecedor ?? '',
-      descricao:         item.descricao  ?? '',
+      fornecedor:        item.fornecedor  ?? '',
+      descricao:         item.descricao   ?? '',
+      localizacao:       (item as any).localizacao ?? '',
     })
     setErroForm('')
     setModalAberto(true)
@@ -161,20 +163,29 @@ export default function EstoquePage() {
 
   function baixarModelo() {
     const csv = [
-      'nome,categoria,unidade,quantidade,quantidade_minima,preco_custo,preco_venda,fornecedor',
-      'Oleo Motor 5W30,lubrificantes,lt,10,2,25.00,45.00,Distribuidora Auto',
-      'Filtro de Oleo,filtros,un,20,5,8.00,18.00,Bosch',
-      'Pastilha de Freio Dianteira,freios,par,8,2,35.00,75.00,TRW',
-      'Vela de Ignicao,motor,un,16,4,12.00,28.00,NGK',
-      'Correia Dentada,motor,un,5,1,45.00,95.00,Gates',
+      'nome,categoria,unidade,quantidade,quantidade_minima,preco_custo,preco_venda,fornecedor,localizacao',
+      'Oleo Motor 5W30,lubrificantes,lt,10,2,25.00,45.00,Distribuidora Auto,Prateleira A1',
+      'Filtro de Oleo,filtros,un,20,5,8.00,18.00,Bosch,Prateleira B2',
+      'Pastilha de Freio Dianteira,freios,par,8,2,35.00,75.00,TRW,Gaveta 3',
     ].join('\n')
-
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
-    a.href     = url
-    a.download = 'modelo_estoque_autokore.csv'
-    a.click()
+    a.href = url; a.download = 'modelo_estoque_autokore.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function exportarEstoque() {
+    const linhas = [
+      'nome,categoria,unidade,quantidade,quantidade_minima,preco_custo,preco_venda,fornecedor,localizacao',
+      ...itensFiltrados.map(i =>
+        `${i.nome},${i.categoria},${i.unidade},${i.quantidade},${i.quantidade_minima},${i.preco_custo.toFixed(2)},${i.preco_venda.toFixed(2)},${i.fornecedor ?? ''},${(i as any).localizacao ?? ''}`
+      ),
+    ].join('\n')
+    const blob = new Blob([linhas], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url; a.download = `estoque_autokore_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -183,56 +194,41 @@ export default function EstoquePage() {
     if (!file || !perfil) return
     setImportando(true)
     setImportResult(null)
-
     const text = await file.text()
     const linhas = text.split('\n').map(l => l.trim()).filter(Boolean)
     const cabecalho = linhas[0].toLowerCase()
-
     if (!cabecalho.includes('nome')) {
       alert('Arquivo invalido. Use o modelo fornecido.')
       setImportando(false)
       return
     }
-
     const dados = linhas.slice(1)
     let ok = 0, erro = 0
-
     for (const linha of dados) {
       try {
         const sep = linha.includes(';') ? ';' : ','
-const cols = linha.split(sep)
+        const cols = linha.split(sep)
         const nome = cols[0]?.trim()
         if (!nome) { erro++; continue }
-
-        const categoria = (cols[1]?.trim() || 'outros') as CategoriaEstoque
-        const unidade   = (cols[2]?.trim() || 'un') as any
-        const quantidade        = Number(cols[3]?.trim()) || 0
-        const quantidade_minima = Number(cols[4]?.trim()) || 2
-        const preco_custo       = Number(cols[5]?.trim()) || 0
-        const preco_venda       = Number(cols[6]?.trim()) || 0
-        const fornecedor        = cols[7]?.trim() || ''
-
         await addDoc(collection(db, 'estoque'), {
           nome,
-          nome_lower: nome.toLowerCase(),
-          categoria,
-          unidade,
-          quantidade,
-          quantidade_minima,
-          preco_custo,
-          preco_venda,
-          fornecedor,
-          descricao:  '',
-          oficina_id: perfil.oficina_id,
-          createdAt:  serverTimestamp(),
-          updatedAt:  serverTimestamp(),
+          nome_lower:        nome.toLowerCase(),
+          categoria:         (cols[1]?.trim() || 'outros') as CategoriaEstoque,
+          unidade:           (cols[2]?.trim() || 'un') as any,
+          quantidade:        Number(cols[3]?.trim()) || 0,
+          quantidade_minima: Number(cols[4]?.trim()) || 2,
+          preco_custo:       Number(cols[5]?.trim()) || 0,
+          preco_venda:       Number(cols[6]?.trim()) || 0,
+          fornecedor:        cols[7]?.trim() || '',
+          localizacao:       cols[8]?.trim() || '',
+          descricao:         '',
+          oficina_id:        perfil.oficina_id,
+          createdAt:         serverTimestamp(),
+          updatedAt:         serverTimestamp(),
         })
         ok++
-      } catch {
-        erro++
-      }
+      } catch { erro++ }
     }
-
     setImportResult({ ok, erro })
     setImportando(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -245,15 +241,17 @@ const cols = linha.split(sep)
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Estoque / Pecas</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {itens.length} itens cadastrados
-            {itensCriticos.length > 0 && (
-              <span className="ml-2 text-red-500 font-medium">· {itensCriticos.length} em alerta</span>
-            )}
+            {itensCriticos.length > 0 && <span className="ml-2 text-red-500 font-medium">· {itensCriticos.length} em alerta</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={baixarModelo}
-            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 transition">
             <Download size={15} />Modelo CSV
+          </button>
+          <button onClick={exportarEstoque}
+            className="flex items-center gap-2 px-3 py-2 text-sm border border-green-200 rounded-xl text-green-600 hover:bg-green-50 transition">
+            <Download size={15} />Exportar
           </button>
           <label className={`flex items-center gap-2 px-3 py-2 text-sm border border-orange-200 rounded-xl text-orange-600 hover:bg-orange-50 transition cursor-pointer ${importando ? 'opacity-50 pointer-events-none' : ''}`}>
             <Upload size={15} />{importando ? 'Importando...' : 'Importar CSV'}
@@ -321,6 +319,7 @@ const cols = linha.split(sep)
               <tr className="border-b border-gray-100">
                 <th className="text-left text-xs font-semibold text-gray-400 pb-3 pr-4">Peca</th>
                 <th className="text-left text-xs font-semibold text-gray-400 pb-3 pr-4">Categoria</th>
+                <th className="text-left text-xs font-semibold text-gray-400 pb-3 pr-4">Localiz.</th>
                 <th className="text-center text-xs font-semibold text-gray-400 pb-3 pr-4">Qtd</th>
                 <th className="text-center text-xs font-semibold text-gray-400 pb-3 pr-4">Min.</th>
                 <th className="text-right text-xs font-semibold text-gray-400 pb-3 pr-4">Custo</th>
@@ -342,12 +341,9 @@ const cols = linha.split(sep)
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 pr-4">
-                      <span className="badge badge-gray capitalize">{item.categoria}</span>
-                    </td>
-                    <td className={`py-3 pr-4 text-center font-bold ${critico ? 'text-red-600' : 'text-gray-800'}`}>
-                      {item.quantidade} {item.unidade}
-                    </td>
+                    <td className="py-3 pr-4"><span className="badge badge-gray capitalize">{item.categoria}</span></td>
+                    <td className="py-3 pr-4 text-xs text-gray-500">{(item as any).localizacao || '—'}</td>
+                    <td className={`py-3 pr-4 text-center font-bold ${critico ? 'text-red-600' : 'text-gray-800'}`}>{item.quantidade} {item.unidade}</td>
                     <td className="py-3 pr-4 text-center text-gray-500">{item.quantidade_minima}</td>
                     <td className="py-3 pr-4 text-right text-gray-600">R${item.preco_custo.toFixed(2)}</td>
                     <td className="py-3 pr-4 text-right font-semibold text-orange-600">R${item.preco_venda.toFixed(2)}</td>
@@ -378,8 +374,7 @@ const cols = linha.split(sep)
           </table>
           {itensFiltrados.length === 0 && (
             <div className="text-center py-12 text-gray-400 text-sm">
-              <Package size={28} className="mx-auto mb-2 opacity-40" />
-              Nenhum item encontrado.
+              <Package size={28} className="mx-auto mb-2 opacity-40" />Nenhum item encontrado.
             </div>
           )}
         </div>
@@ -389,17 +384,10 @@ const cols = linha.split(sep)
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <Trash2 size={18} className="text-red-500" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-gray-800">Excluir peca</h2>
-                <p className="text-xs text-gray-500">Esta acao nao pode ser desfeita.</p>
-              </div>
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0"><Trash2 size={18} className="text-red-500" /></div>
+              <div><h2 className="text-base font-bold text-gray-800">Excluir peca</h2><p className="text-xs text-gray-500">Esta acao nao pode ser desfeita.</p></div>
             </div>
-            <p className="text-sm text-gray-600 mb-5">
-              Tem certeza que deseja excluir <strong>{modalDeletar.nome}</strong>?
-            </p>
+            <p className="text-sm text-gray-600 mb-5">Tem certeza que deseja excluir <strong>{modalDeletar.nome}</strong>?</p>
             <div className="flex gap-3">
               <button onClick={() => setModalDeletar(null)} className="btn-ghost flex-1">Cancelar</button>
               <button onClick={handleDeletar} disabled={deletando}
@@ -458,9 +446,15 @@ const cols = linha.split(sep)
                   <input type="number" min={0} step={0.01} value={form.preco_venda} onChange={e => setForm(f => ({ ...f, preco_venda: Number(e.target.value) }))} className="input-base" />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Fornecedor</label>
-                <input value={form.fornecedor} onChange={e => setForm(f => ({ ...f, fornecedor: e.target.value }))} className="input-base" placeholder="Ex: Distribuidora APIS" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Fornecedor</label>
+                  <input value={form.fornecedor} onChange={e => setForm(f => ({ ...f, fornecedor: e.target.value }))} className="input-base" placeholder="Ex: Distribuidora APIS" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Localização</label>
+                  <input value={form.localizacao} onChange={e => setForm(f => ({ ...f, localizacao: e.target.value }))} className="input-base" placeholder="Ex: Prateleira A1" />
+                </div>
               </div>
             </div>
             <div className="flex gap-3 mt-5">
