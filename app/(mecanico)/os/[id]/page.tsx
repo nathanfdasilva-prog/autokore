@@ -1,15 +1,14 @@
 'use client'
 import Link from 'next/link'
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ArrowLeft, Car, Bike, Package, DollarSign, User, Printer } from 'lucide-react'
-import { useOS, atualizarStatusOS } from '@/lib/hooks/useOS'
+import { useOS, atualizarStatusOS, atualizarOS } from '@/lib/hooks/useOS'
 import { useAuth } from '@/lib/context/AuthContext'
 import { imprimirOS } from '@/lib/services/osPDF'
 import {
-  BotaoOsConcluida,
-  BotaoEnviarOrcamento,
-  BotaoWhatsApp,
+  BotaoOsConcluida, BotaoEnviarOrcamento, BotaoWhatsApp,
 } from '@/components/whatsapp/BotoesWhatsApp'
 import type { StatusOS } from '@/lib/types'
 
@@ -23,9 +22,11 @@ const STATUS_CLS: Record<StatusOS, string> = {
 }
 
 export default function OSDetalhePage({ params }: { params: { id: string } }) {
-  const { id }              = params
-  const { os, loading }     = useOS(id)
+  const { id }                       = params
+  const { os, loading }              = useOS(id)
   const { perfil, isAdmin, oficina } = useAuth()
+  const [kmSaida, setKmSaida]        = useState('')
+  const [salvandoKm, setSalvandoKm]  = useState(false)
 
   const oficinaNome = oficina?.nome ?? 'Oficina'
   const oficinaTel  = oficina?.whatsapp ?? ''
@@ -34,7 +35,60 @@ export default function OSDetalhePage({ params }: { params: { id: string } }) {
   if (!os) return <div className="text-center py-20"><p className="text-gray-500">OS não encontrada.</p><Link href="/os" className="btn-primary mt-4 inline-flex">Voltar</Link></div>
 
   const podeEditar = (os.status === 'aberta' || os.status === 'em_andamento') && (isAdmin || perfil?.uid === os.mecanico_id)
+
   async function mudarStatus(status: StatusOS) { await atualizarStatusOS(id, status) }
+
+  async function salvarKmSaida() {
+    if (!kmSaida || isNaN(Number(kmSaida))) return
+    setSalvandoKm(true)
+    try {
+      await atualizarOS(id, { km_saida: Number(kmSaida) })
+      setKmSaida('')
+    } finally {
+      setSalvandoKm(false)
+    }
+  }
+
+  function imprimirDireto() {
+    const conteudo = `
+      <html><head><title>OS #${String(os.numero).padStart(4,'0')}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; font-size: 13px; }
+        h1 { color: #E85D04; } table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        td, th { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
+        th { background: #f5f5f5; } .total { font-size: 16px; font-weight: bold; color: #E85D04; }
+      </style></head>
+      <body>
+        <h1>${oficinaNome}</h1>
+        <p>OS #${String(os.numero).padStart(4,'0')} — ${STATUS_LABELS[os.status]}</p>
+        <p>Aberta em: ${format(os.createdAt, "dd/MM/yyyy 'às' HH:mm")}</p>
+        <h3>Cliente e Veículo</h3>
+        <table>
+          <tr><td><b>Cliente</b></td><td>${os.cliente_nome}</td><td><b>Veículo</b></td><td>${os.veiculo}</td></tr>
+          <tr><td><b>Placa</b></td><td>${os.placa}</td><td><b>Km entrada</b></td><td>${os.km_entrada?.toLocaleString('pt-BR') ?? '—'} km</td></tr>
+          ${(os as any).km_saida ? `<tr><td><b>Km saída</b></td><td>${(os as any).km_saida?.toLocaleString('pt-BR')} km</td><td></td><td></td></tr>` : ''}
+        </table>
+        <h3>Serviço</h3>
+        <p>${os.descricao_problema}</p>
+        ${os.itens.length > 0 ? `
+          <h3>Peças</h3>
+          <table>
+            <tr><th>Item</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr>
+            ${os.itens.map(i => `<tr><td>${i.nome}</td><td>${i.quantidade}</td><td>R$${i.preco_unitario.toFixed(2)}</td><td>R$${i.subtotal.toFixed(2)}</td></tr>`).join('')}
+          </table>` : ''}
+        <h3>Financeiro</h3>
+        <table>
+          <tr><td>Peças</td><td>R$${os.valor_pecas.toFixed(2)}</td></tr>
+          <tr><td>Mão de obra</td><td>R$${os.valor_mao_obra.toFixed(2)}</td></tr>
+          <tr><td class="total">Total</td><td class="total">R$${os.valor_total.toFixed(2)}</td></tr>
+        </table>
+        <p>Mecânico: ${os.mecanico_nome}</p>
+        ${oficinaTel ? `<p>WhatsApp: ${oficinaTel}</p>` : ''}
+      </body></html>
+    `
+    const w = window.open('', '_blank')
+    if (w) { w.document.write(conteudo); w.document.close(); w.print() }
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -61,10 +115,32 @@ export default function OSDetalhePage({ params }: { params: { id: string } }) {
             <div><p className="text-xs text-gray-400">Cliente</p><p className="font-medium text-gray-800">{os.cliente_nome}</p></div>
             <div><p className="text-xs text-gray-400">Veículo</p><p className="font-medium text-gray-800">{os.veiculo}</p></div>
             <div><p className="text-xs text-gray-400">Placa</p><p className="font-mono font-bold text-gray-800">{os.placa}</p></div>
-            {os.km_entrada && <div><p className="text-xs text-gray-400">Km</p><p className="font-medium text-gray-800">{os.km_entrada.toLocaleString('pt-BR')} km</p></div>}
+            {os.km_entrada && <div><p className="text-xs text-gray-400">Km entrada</p><p className="font-medium text-gray-800">{os.km_entrada.toLocaleString('pt-BR')} km</p></div>}
+            {(os as any).km_saida && <div><p className="text-xs text-gray-400">Km saída</p><p className="font-medium text-gray-800">{(os as any).km_saida.toLocaleString('pt-BR')} km</p></div>}
           </div>
+
+          {/* Km saída — aparece apenas em OS ativas */}
+          {podeEditar && !(os as any).km_saida && (
+            <div className="pt-3 border-t border-gray-100">
+              <p className="text-xs text-gray-400 mb-1.5">Registrar Km de saída</p>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={kmSaida}
+                  onChange={e => setKmSaida(e.target.value)}
+                  placeholder="Ex: 45230"
+                  className="input-base flex-1"
+                />
+                <button onClick={salvarKmSaida} disabled={salvandoKm || !kmSaida}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition disabled:opacity-50">
+                  {salvandoKm ? '...' : 'Salvar'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {os.cliente_whatsapp && (
-            <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
+            <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100 mt-3">
               <BotaoWhatsApp numero={os.cliente_whatsapp} mensagem={`Olá, ${os.cliente_nome}!`} label="Contato direto" variante="icon" />
               {os.valor_total > 0 && os.status !== 'concluida' && <BotaoEnviarOrcamento os={os} oficina_nome={oficinaNome} />}
               {os.status === 'concluida' && <BotaoOsConcluida os={os} oficina_nome={oficinaNome} />}
@@ -127,18 +203,23 @@ export default function OSDetalhePage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        <div className="card flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-gray-700">Relatório da OS</p>
-            <p className="text-xs text-gray-400">Gera PDF para impressão ou envio</p>
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-700">Relatório da OS</p>
+              <p className="text-xs text-gray-400">Gera PDF ou imprime diretamente</p>
+            </div>
           </div>
-          <button
-            onClick={() => imprimirOS(os, oficinaNome, oficinaTel)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition"
-          >
-            <Printer size={15} />
-            Gerar PDF
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => imprimirOS(os, oficinaNome, oficinaTel)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition">
+              <Printer size={15} />Gerar PDF
+            </button>
+            <button onClick={imprimirDireto}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl transition">
+              <Printer size={15} />Imprimir direto
+            </button>
+          </div>
         </div>
       </div>
     </div>
