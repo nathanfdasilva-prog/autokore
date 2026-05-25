@@ -1,29 +1,23 @@
-// ============================================================
-// SERVIÇO ASAAS — lib/services/asaas.ts
-// Integração com Asaas para cobrança das oficinas
-// ============================================================
-
 const API = '/api/asaas'
 
 export const PLANOS_ASAAS = {
   basico: {
     nome:      'Básico',
-    valor:     97,
+    valor:     0,
     descricao: 'Plano Básico AutoKore',
   },
   pro: {
     nome:      'Profissional',
-    valor:     197,
+    valor:     97,
     descricao: 'Plano Profissional AutoKore',
   },
   premium: {
     nome:      'Premium',
-    valor:     297,
+    valor:     247,
     descricao: 'Plano Premium AutoKore',
   },
 }
 
-// ---- Criar cliente no Asaas ----
 export async function criarClienteAsaas(dados: {
   name:          string
   cpfCnpj?:      string
@@ -38,7 +32,6 @@ export async function criarClienteAsaas(dados: {
   return res.json()
 }
 
-// ---- Criar assinatura mensal ----
 export async function criarAssinatura(dados: {
   customer:    string
   plano:       keyof typeof PLANOS_ASAAS
@@ -64,7 +57,6 @@ export async function criarAssinatura(dados: {
   return res.json()
 }
 
-// ---- Cancelar assinatura ----
 export async function cancelarAssinatura(subscription_id: string) {
   const res = await fetch(API, {
     method:  'POST',
