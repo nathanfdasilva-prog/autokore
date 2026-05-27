@@ -14,7 +14,10 @@ export function useOficinasRede() {
   const [oficinas, setOficinas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    if (!perfil?.uid || !isAdmin) return
+    if (!perfil?.uid || !isAdmin) {
+      setLoading(false)
+      return
+    }
     const q = query(
       collection(db, 'oficinas'),
       where('rede_dono_uid', '==', perfil.uid),
@@ -24,7 +27,7 @@ export function useOficinasRede() {
     const unsub = onSnapshot(q, snap => {
       setOficinas(snap.docs.map(d => docToData<any>(d)))
       setLoading(false)
-    })
+    }, () => setLoading(false))
     return () => unsub()
   }, [perfil?.uid, isAdmin])
   return { oficinas, loading }
