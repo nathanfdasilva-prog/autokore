@@ -138,9 +138,9 @@ export default function LandingPage() {
           <h2 className="section-title">O que dizem nossas oficinas</h2>
           <div className="features-grid">
             {[
-              {nome:'Carlos Souza',oficina:'CS Mecânica — Cacoal/RO',nota:'⭐⭐⭐⭐⭐',texto:'Antes eu anotava tudo em caderno. Hoje controlo minhas OS, estoque e clientes pelo celular. Melhorou muito minha organização!'},
-              {nome:'Ana Lima',oficina:'Auto Center Lima — Ji-Paraná/RO',nota:'⭐⭐⭐⭐⭐',texto:'O sistema de agendamento me ajudou a acabar com os conflitos de horário. Meus clientes adoram receber a confirmação pelo WhatsApp.'},
-              {nome:'Roberto Alves',oficina:'Oficina Alves — Porto Velho/RO',nota:'⭐⭐⭐⭐⭐',texto:'Em menos de uma semana já estava usando tudo. O suporte é excelente e o sistema é muito intuitivo. Recomendo!'},
+              {nome:'Carlos Souza',oficina:'CS Mecânica',nota:'⭐⭐⭐⭐⭐',texto:'Antes eu anotava tudo em caderno. Hoje controlo minhas OS, estoque e clientes pelo celular. Melhorou muito minha organização!'},
+              {nome:'Ana Lima',oficina:'Auto Center Lima',nota:'⭐⭐⭐⭐⭐',texto:'O sistema de agendamento me ajudou a acabar com os conflitos de horário. Meus clientes adoram receber a confirmação pelo WhatsApp.'},
+              {nome:'Roberto Alves',oficina:'Oficina Alves',nota:'⭐⭐⭐⭐⭐',texto:'Em menos de uma semana já estava usando tudo. O suporte é excelente e o sistema é muito intuitivo. Recomendo!'},
             ].map((d,i) => (
               <div className="feat-card" key={i}>
                 <div style={{fontSize:'18px',marginBottom:'8px'}}>{d.nota}</div>
