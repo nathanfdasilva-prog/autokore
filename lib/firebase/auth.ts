@@ -2,6 +2,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut,
   sendPasswordResetEmail,
@@ -29,12 +31,39 @@ export async function loginComEmail(email: string, senha: string) {
 }
 
 export async function loginComGoogle() {
-  const cred = await signInWithPopup(auth, googleProvider)
-  const user = cred.user
+  try {
+    const cred = await signInWithPopup(auth, googleProvider)
+    const user = cred.user
+    await garantirUsuarioFirestore(user)
+    return user
+  } catch (err: any) {
+    if (
+      err.code === 'auth/popup-blocked' ||
+      err.code === 'auth/popup-closed-by-user'
+    ) {
+      await signInWithRedirect(auth, googleProvider)
+      return null
+    }
+    throw err
+  }
+}
 
+export async function capturarRedirectGoogle() {
+  try {
+    const result = await getRedirectResult(auth)
+    if (result?.user) {
+      await garantirUsuarioFirestore(result.user)
+      return result.user
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+async function garantirUsuarioFirestore(user: User) {
   const userRef = doc(db, 'users', user.uid)
   const snap = await getDoc(userRef)
-
   if (!snap.exists()) {
     await setDoc(userRef, {
       uid:        user.uid,
@@ -47,12 +76,6 @@ export async function loginComGoogle() {
       createdAt:  serverTimestamp(),
     })
   }
-
-  return user
-}
-
-export async function capturarRedirectGoogle() {
-  return null
 }
 
 export async function registrarUsuario(params: {
@@ -63,12 +86,9 @@ export async function registrarUsuario(params: {
   oficina_id: string
 }) {
   const { nome, email, senha, role, oficina_id } = params
-
   const cred = await createUserWithEmailAndPassword(auth, email, senha)
   const user = cred.user
-
   await updateProfile(user, { displayName: nome })
-
   await setDoc(doc(db, 'users', user.uid), {
     uid:        user.uid,
     nome,
@@ -79,7 +99,6 @@ export async function registrarUsuario(params: {
     avatar_url: '',
     createdAt:  serverTimestamp(),
   } satisfies Omit<Usuario, 'createdAt'> & { createdAt: ReturnType<typeof serverTimestamp> })
-
   return user
 }
 
