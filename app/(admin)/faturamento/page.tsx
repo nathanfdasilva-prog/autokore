@@ -46,7 +46,10 @@ export default function FaturamentoPage() {
   }, [periodo])
 
   useEffect(() => {
-    if (!perfil?.oficina_id) return
+    if (!perfil?.oficina_id) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
 
     const de  = startOfDay(new Date(dataInicio + 'T00:00:00'))
@@ -64,7 +67,7 @@ export default function FaturamentoPage() {
     const unsub = onSnapshot(q, snap => {
       setOrdens(snap.docs.map(d => docToData<OrdemServico>(d)))
       setLoading(false)
-    })
+    }, () => setLoading(false))
 
     return () => unsub()
   }, [perfil?.oficina_id, dataInicio, dataFim])
