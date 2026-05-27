@@ -31,6 +31,13 @@ export async function loginComEmail(email: string, senha: string) {
 }
 
 export async function loginComGoogle() {
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches
+
+  if (isPWA) {
+    await signInWithRedirect(auth, googleProvider)
+    return null
+  }
+
   try {
     const cred = await signInWithPopup(auth, googleProvider)
     const user = cred.user
