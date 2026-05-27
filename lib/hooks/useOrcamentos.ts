@@ -56,7 +56,10 @@ export function useOrcamentos(status?: StatusOrcamento) {
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    if (!perfil?.oficina_id) return
+    if (!perfil?.oficina_id) {
+      setLoading(false)
+      return
+    }
     const constraints: any[] = [
       where('oficina_id', '==', perfil.oficina_id),
       orderBy('createdAt', 'desc'),
@@ -66,7 +69,7 @@ export function useOrcamentos(status?: StatusOrcamento) {
     const unsub = onSnapshot(q, snap => {
       setOrcamentos(snap.docs.map(d => docToData<Orcamento>(d)))
       setLoading(false)
-    })
+    }, () => setLoading(false))
     return () => unsub()
   }, [perfil?.oficina_id, status])
   return { orcamentos, loading }
