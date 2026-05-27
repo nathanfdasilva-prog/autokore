@@ -16,9 +16,14 @@ export default function LoginPage() {
 
   useEffect(() => {
     setIosDevice(isIOS())
+    setLoading(true)
     capturarRedirectGoogle().then(user => {
-      if (user) setTimeout(() => router.replace('/dashboard'), 1000)
-    })
+      if (user) {
+        router.replace('/dashboard')
+      } else {
+        setLoading(false)
+      }
+    }).catch(() => setLoading(false))
   }, [])
 
   async function handleEmailLogin(e: React.FormEvent) {
@@ -30,7 +35,6 @@ export default function LoginPage() {
       router.replace(isAdmin ? '/dashboard' : '/os')
     } catch (err: any) {
       setErro(traduzirErroFirebase(err.code))
-    } finally {
       setLoading(false)
     }
   }
@@ -44,11 +48,25 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const user = await loginComGoogle()
-      if (user) router.replace('/dashboard')
+      if (user) {
+        router.replace('/dashboard')
+      }
+      // se retornou null é porque foi redirect — página vai recarregar sozinha
     } catch (err: any) {
       setErro(traduzirErroFirebase(err.code))
       setLoading(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-9 h-9 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-gray-400">Entrando...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
