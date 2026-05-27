@@ -1,18 +1,28 @@
 'use client'
 import Link from 'next/link'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Script from 'next/script'
+import { useAuth } from '@/lib/context/AuthContext'
 import './landing.css'
 
 const RECAPTCHA_SITE_KEY = '6LcFufQsAAAACtanHMaZQhEqolT6eoD3xR2bELT'
 
 export default function LandingPage() {
+  const router = useRouter()
+  const { user, loading } = useAuth()
   const [nome, setNome] = useState('')
   const [tel, setTel] = useState('')
   const [msg, setMsg] = useState('🔒 Seus dados são privados. Não enviamos spam.')
   const [enviando, setEnviando] = useState(false)
 
-  const capturarLead = useCallback(async () => {
+  useEffect(() => {
+    if (!loading && user) router.replace('/dashboard')
+  }, [user, loading])
+
+  if (loading || user) return null
+
+  const capturarLead = async () => {
     if (!nome.trim() || !tel.trim()) { setMsg('⚠️ Preencha seu nome e WhatsApp.'); return }
     const telLimpo = tel.replace(/\D/g, '')
     if (telLimpo.length < 10) { setMsg('⚠️ Digite um WhatsApp valido com DDD.'); return }
@@ -30,8 +40,7 @@ export default function LandingPage() {
     } finally {
       setEnviando(false)
     }
-  }, [nome, tel])
-
+  }
   return (
     <div className="lp-wrap">
       <Script src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`} strategy="lazyOnload" />
