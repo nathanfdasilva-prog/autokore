@@ -78,7 +78,7 @@ export default function DashboardPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              { icon: '👥', label: 'Cadastrar mecânicos', desc: 'Adicione sua equipe', href: '/mecanicos', btn: 'Ir para Equipe' },
+              { icon: '👥', label: 'Cadastrar mecânicos', desc: 'Adicione sua equipe', href: '/equipe', btn: 'Ir para Equipe' },
               { icon: '📦', label: 'Adicionar peças ao estoque', desc: 'Controle suas peças', href: '/estoque', btn: 'Ir para Estoque' },
               { icon: '📅', label: 'Criar primeiro agendamento', desc: 'Organize sua agenda', href: '/agendamentos', btn: 'Ir para Agenda' },
               { icon: '🔧', label: 'Abrir primeira OS', desc: 'Comece a atender', href: '/os/nova', btn: 'Nova OS' },
