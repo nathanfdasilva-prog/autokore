@@ -37,15 +37,10 @@ export default function MasterPage() {
   const [acao, setAcao] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!loading && perfil && perfil.email !== MASTER_EMAIL) {
-      router.replace('/dashboard')
-    }
-  }, [perfil, loading, router])
-
-  useEffect(() => {
-    if (!loading && perfil && perfil.email === MASTER_EMAIL) {
-      carregarDados()
-    }
+    if (loading) return
+    if (!perfil) { router.replace('/login'); return }
+    if (perfil.email !== MASTER_EMAIL) { router.replace('/dashboard'); return }
+    carregarDados()
   }, [perfil, loading])
 
   async function carregarDados() {
@@ -105,9 +100,7 @@ export default function MasterPage() {
     )
   }
 
-  if (!perfil || perfil.email !== MASTER_EMAIL) {
-    return null
-  }
+  if (!perfil || perfil.email !== MASTER_EMAIL) return null
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
