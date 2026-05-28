@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import { useAuth } from '@/lib/context/AuthContext'
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase/config'
 import './landing.css'
 
 const RECAPTCHA_SITE_KEY = '6LcFufQsAAAACtanHMaZQhEqolT6eoD3xR2bELT'
@@ -33,6 +35,12 @@ export default function LandingPage() {
         const token = await (window as any).grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'lead_form' })
         if (!token) throw new Error('reCAPTCHA falhou')
       }
+      await addDoc(collection(db, 'leads'), {
+        nome:      nome.trim(),
+        whatsapp:  telLimpo,
+        createdAt: serverTimestamp(),
+        origem:    'landing_page',
+      })
       setMsg(`✅ Obrigado, ${nome}! Te avisaremos em breve.`)
       setNome(''); setTel('')
     } catch (e) {
@@ -41,6 +49,7 @@ export default function LandingPage() {
       setEnviando(false)
     }
   }
+
   return (
     <div className="lp-wrap">
       <Script src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`} strategy="lazyOnload" />
