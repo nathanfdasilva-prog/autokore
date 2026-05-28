@@ -32,7 +32,7 @@ export default function EquipePage() {
 
   // Busca membros da oficina em tempo real
   useEffect(() => {
-    if (!perfil?.oficina_id) return
+    if (!perfil?.oficina_id) { setLoading(false); return }
 
     const q = query(
       collection(db, 'users'),
