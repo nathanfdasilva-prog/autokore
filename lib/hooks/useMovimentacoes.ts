@@ -14,7 +14,7 @@ export function useMovimentacoes(limite = 50) {
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEstoque[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    if (!perfil?.oficina_id) return
+    if (!perfil?.oficina_id) { setLoading(false); return }
     const q = query(
       collection(db, 'movimentacoes_estoque'),
       where('oficina_id', '==', perfil.oficina_id),
@@ -24,7 +24,7 @@ export function useMovimentacoes(limite = 50) {
     const unsub = onSnapshot(q, snap => {
       setMovimentacoes(snap.docs.map(d => docToData<MovimentacaoEstoque>(d)))
       setLoading(false)
-    })
+    }, () => setLoading(false))
     return () => unsub()
   }, [perfil?.oficina_id, limite])
   return { movimentacoes, loading }
@@ -35,7 +35,7 @@ export function useMovimentacoesItem(item_id: string) {
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEstoque[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    if (!perfil?.oficina_id || !item_id) return
+    if (!perfil?.oficina_id || !item_id) { setLoading(false); return }
     const q = query(
       collection(db, 'movimentacoes_estoque'),
       where('item_id', '==', item_id),
@@ -46,7 +46,7 @@ export function useMovimentacoesItem(item_id: string) {
     const unsub = onSnapshot(q, snap => {
       setMovimentacoes(snap.docs.map(d => docToData<MovimentacaoEstoque>(d)))
       setLoading(false)
-    })
+    }, () => setLoading(false))
     return () => unsub()
   }, [item_id, perfil?.oficina_id])
   return { movimentacoes, loading }
@@ -57,7 +57,7 @@ export function useMovimentacoesPeriodo(de: Date, ate: Date) {
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEstoque[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    if (!perfil?.oficina_id) return
+    if (!perfil?.oficina_id) { setLoading(false); return }
     const q = query(
       collection(db, 'movimentacoes_estoque'),
       where('oficina_id', '==', perfil.oficina_id),
@@ -68,7 +68,7 @@ export function useMovimentacoesPeriodo(de: Date, ate: Date) {
     const unsub = onSnapshot(q, snap => {
       setMovimentacoes(snap.docs.map(d => docToData<MovimentacaoEstoque>(d)))
       setLoading(false)
-    })
+    }, () => setLoading(false))
     return () => unsub()
   }, [perfil?.oficina_id, de.toISOString(), ate.toISOString()])
   return { movimentacoes, loading }

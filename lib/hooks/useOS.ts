@@ -17,7 +17,7 @@ export function useMinhasOS() {
   const [erro,    setErro]    = useState<string | null>(null)
 
   useEffect(() => {
-    if (!perfil?.oficina_id) return
+    if (!perfil?.oficina_id) { setLoading(false); return }
 
     const constraints = [
       where('oficina_id', '==', perfil.oficina_id),
@@ -46,11 +46,11 @@ export function useOS(id: string) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!id) return
+    if (!id) { setLoading(false); return }
     const unsub = onSnapshot(doc(db, 'ordens_servico', id), snap => {
       setOS(snap.exists() ? docToData<OrdemServico>(snap) : null)
       setLoading(false)
-    })
+    }, () => setLoading(false))
     return () => unsub()
   }, [id])
 
@@ -83,7 +83,6 @@ export async function criarOS(dados: {
   agendamento_id?:     string
 }): Promise<string> {
   const numero = await proximoNumeroOS(dados.oficina_id)
-
   const ref = await addDoc(collection(db, 'ordens_servico'), {
     ...dados,
     numero,
@@ -96,7 +95,6 @@ export async function criarOS(dados: {
     createdAt:            serverTimestamp(),
     updatedAt:            serverTimestamp(),
   })
-
   return ref.id
 }
 
@@ -107,29 +105,18 @@ export async function atualizarStatusOS(os_id: string, status: StatusOS) {
   })
 }
 
-export async function atualizarOS(
-  os_id: string,
-  dados: Record<string, any>,
-) {
+export async function atualizarOS(os_id: string, dados: Record<string, any>) {
   await updateDoc(doc(db, 'ordens_servico', os_id), {
     ...dados,
     updatedAt: serverTimestamp(),
   })
 }
 
-export async function salvarItensOS(
-  os_id: string,
-  itens: ItemOS[],
-  valor_mao_obra: number,
-) {
+export async function salvarItensOS(os_id: string, itens: ItemOS[], valor_mao_obra: number) {
   const valor_pecas = itens.reduce((s, i) => s + i.subtotal, 0)
   const valor_total = valor_pecas + valor_mao_obra
-
   await updateDoc(doc(db, 'ordens_servico', os_id), {
-    itens,
-    valor_pecas,
-    valor_mao_obra,
-    valor_total,
+    itens, valor_pecas, valor_mao_obra, valor_total,
     updatedAt: serverTimestamp(),
   })
 }
@@ -144,22 +131,12 @@ export async function finalizarOS(params: {
   forma_pagamento: OrdemServico['forma_pagamento']
   observacoes?:    string
 }): Promise<void> {
-  const {
-    os_id, oficina_id, usuario_id, usuario_nome,
-    itens, valor_mao_obra, forma_pagamento, observacoes,
-  } = params
+  const { os_id, oficina_id, usuario_id, usuario_nome, itens, valor_mao_obra, forma_pagamento, observacoes } = params
 
   if (itens.length > 0) {
     await baixarEstoque({
-      oficina_id,
-      usuario_id,
-      usuario_nome,
-      os_id,
-      itens: itens.map(i => ({
-        produto_id: i.produto_id,
-        quantidade: i.quantidade,
-        nome:       i.nome,
-      })),
+      oficina_id, usuario_id, usuario_nome, os_id,
+      itens: itens.map(i => ({ produto_id: i.produto_id, quantidade: i.quantidade, nome: i.nome })),
     })
   }
 
@@ -168,10 +145,7 @@ export async function finalizarOS(params: {
 
   await updateDoc(doc(db, 'ordens_servico', os_id), {
     status:               'concluida' as StatusOS,
-    itens,
-    valor_pecas,
-    valor_mao_obra,
-    valor_total,
+    itens, valor_pecas, valor_mao_obra, valor_total,
     forma_pagamento,
     observacoes_internas: observacoes ?? '',
     finalizadaAt:         serverTimestamp(),

@@ -32,14 +32,20 @@ export function useDesempenhoMecanicos(mesRef?: Date) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!perfil?.oficina_id) return
+    if (!perfil?.oficina_id) {
+      setLoading(false)
+      return
+    }
     const q = query(collection(db, 'users'), where('oficina_id', '==', perfil.oficina_id))
-    const unsub = onSnapshot(q, snap => setMecanicos(snap.docs.map(d => docToData<Usuario>(d))))
+    const unsub = onSnapshot(q, snap => setMecanicos(snap.docs.map(d => docToData<Usuario>(d))), () => {})
     return () => unsub()
   }, [perfil?.oficina_id])
 
   useEffect(() => {
-    if (!perfil?.oficina_id) return
+    if (!perfil?.oficina_id) {
+      setLoading(false)
+      return
+    }
     const q = query(
       collection(db, 'ordens_servico'),
       where('oficina_id', '==', perfil.oficina_id),
@@ -50,7 +56,7 @@ export function useDesempenhoMecanicos(mesRef?: Date) {
     const unsub = onSnapshot(q, snap => {
       setOrdens(snap.docs.map(d => docToData<OrdemServico>(d)))
       setLoading(false)
-    })
+    }, () => setLoading(false))
     return () => unsub()
   }, [perfil?.oficina_id, mes.getMonth(), mes.getFullYear()])
 

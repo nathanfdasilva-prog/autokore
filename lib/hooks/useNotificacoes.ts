@@ -22,7 +22,7 @@ export function useNotificacoes() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!perfil?.oficina_id) return
+    if (!perfil?.oficina_id) { setLoading(false); return }
 
     const q = query(
       collection(db, 'oficinas', perfil.oficina_id, 'notificacoes'),
@@ -37,7 +37,7 @@ export function useNotificacoes() {
         createdAt: d.data().createdAt?.toDate?.() ?? new Date(),
       })) as Notificacao[])
       setLoading(false)
-    })
+    }, () => setLoading(false))
 
     return unsub
   }, [perfil?.oficina_id, perfil?.uid])
