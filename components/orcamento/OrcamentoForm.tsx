@@ -108,7 +108,7 @@ export default function OrcamentoForm() {
         veiculo:          form.veiculo,
         placa:            form.placa.toUpperCase(),
         tipo_veiculo:     form.tipo_veiculo,
-        km:               form.km ? Number(form.km) : undefined,
+        km:               form.km ? Number(form.km) : null,
         descricao:        form.descricao,
         observacoes:      form.observacoes || undefined,
         itens,
