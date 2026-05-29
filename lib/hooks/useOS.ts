@@ -83,18 +83,32 @@ export async function criarOS(dados: {
   agendamento_id?:     string
 }): Promise<string> {
   const numero = await proximoNumeroOS(dados.oficina_id)
-  const ref = await addDoc(collection(db, 'ordens_servico'), {
-    ...dados,
+
+  const payload: Record<string, any> = {
+    oficina_id:          dados.oficina_id,
+    cliente_nome:        dados.cliente_nome,
+    cliente_whatsapp:    dados.cliente_whatsapp,
+    veiculo:             dados.veiculo,
+    placa:               dados.placa,
+    tipo_veiculo:        dados.tipo_veiculo,
+    descricao_problema:  dados.descricao_problema,
+    mecanico_id:         dados.mecanico_id,
+    mecanico_nome:       dados.mecanico_nome,
     numero,
-    status:               'aberta' as StatusOS,
-    itens:                [],
-    valor_pecas:          0,
-    valor_mao_obra:       0,
-    valor_total:          0,
+    status:              'aberta' as StatusOS,
+    itens:               [],
+    valor_pecas:         0,
+    valor_mao_obra:      0,
+    valor_total:         0,
     observacoes_internas: '',
-    createdAt:            serverTimestamp(),
-    updatedAt:            serverTimestamp(),
-  })
+    createdAt:           serverTimestamp(),
+    updatedAt:           serverTimestamp(),
+  }
+
+  if (dados.km_entrada !== undefined) payload.km_entrada = dados.km_entrada
+  if (dados.agendamento_id !== undefined) payload.agendamento_id = dados.agendamento_id
+
+  const ref = await addDoc(collection(db, 'ordens_servico'), payload)
   return ref.id
 }
 
