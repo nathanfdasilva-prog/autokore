@@ -3,6 +3,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { doc, getDoc, db } from '@/lib/firebase/firestore'
 import { atualizarStatusOrcamento, enviarOrcamento, type Orcamento } from '@/lib/hooks/useOrcamentos'
+import { criarOS } from '@/lib/hooks/useOS'
 import { useAuth } from '@/lib/context/AuthContext'
 import { abrirWhatsApp, TEMPLATES } from '@/lib/services/whatsapp'
 import { format } from 'date-fns'
@@ -70,6 +71,32 @@ export default function OrcamentoDetalhePage() {
     setAtualizando(false)
   }
 
+  async function handleGerarOS() {
+    if (!orc || !perfil) return
+    setAtualizando(true)
+    try {
+      const os_id = await criarOS({
+        oficina_id:         perfil.oficina_id,
+        cliente_nome:       orc.cliente_nome,
+        cliente_whatsapp:   orc.cliente_whatsapp,
+        veiculo:            orc.veiculo,
+        placa:              orc.placa,
+        tipo_veiculo:       orc.tipo_veiculo,
+        km_entrada:         orc.km ?? undefined,
+        descricao_problema: orc.descricao,
+        mecanico_id:        perfil.uid,
+        mecanico_nome:      perfil.nome,
+        agendamento_id:     undefined,
+      })
+      await atualizarStatusOrcamento(orc.id, 'convertido', { os_id })
+      router.push(`/os/${os_id}`)
+    } catch (e: any) {
+      console.error(e)
+    } finally {
+      setAtualizando(false)
+    }
+  }
+
   if (loading) return (
     <div className="flex justify-center py-24">
       <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -102,7 +129,8 @@ export default function OrcamentoDetalhePage() {
           <span className={`badge ${
             orc.status === 'aprovado' ? 'badge-green' :
             orc.status === 'reprovado' ? 'badge-red' :
-            orc.status === 'enviado' ? 'badge-blue' : 'badge-gray'
+            orc.status === 'enviado' ? 'badge-blue' :
+            orc.status === 'convertido' ? 'badge-orange' : 'badge-gray'
           } capitalize`}>{orc.status}</span>
         </div>
 
@@ -140,8 +168,13 @@ export default function OrcamentoDetalhePage() {
           </>
         )}
         {orc.status === 'aprovado' && !orc.os_id && (
-          <button onClick={() => router.push('/orcamentos')} className="flex items-center gap-2 text-sm bg-orange-500 text-white rounded-lg px-4 py-2 hover:bg-orange-600 transition">
-            <RotateCcw size={14} />Gerar OS
+          <button onClick={handleGerarOS} disabled={atualizando} className="flex items-center gap-2 text-sm bg-orange-500 text-white rounded-lg px-4 py-2 hover:bg-orange-600 transition disabled:opacity-50">
+            <RotateCcw size={14} />{atualizando ? 'Gerando...' : 'Gerar OS'}
+          </button>
+        )}
+        {orc.os_id && (
+          <button onClick={() => router.push(`/os/${orc.os_id}`)} className="flex items-center gap-2 text-sm bg-gray-100 text-gray-700 rounded-lg px-4 py-2 hover:bg-gray-200 transition">
+            Ver OS →
           </button>
         )}
       </div>
