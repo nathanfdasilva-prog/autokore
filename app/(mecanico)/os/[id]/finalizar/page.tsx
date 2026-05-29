@@ -4,7 +4,7 @@
 // Fluxo dedicado para finalizar uma OS já existente.
 // ============================================================
 
-import { use, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -19,7 +19,7 @@ import type { ItemOS, OrdemServico } from '@/lib/types'
 export default function FinalizarOSPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  const { id }            = params
 }) {
   const { id }            = use(params)
   const { os, loading }   = useOS(id)
