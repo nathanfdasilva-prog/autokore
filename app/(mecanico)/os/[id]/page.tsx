@@ -34,7 +34,7 @@ export default function OSDetalhePage({ params }: { params: { id: string } }) {
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!os) return <div className="text-center py-20"><p className="text-gray-500">OS não encontrada.</p><Link href="/os" className="btn-primary mt-4 inline-flex">Voltar</Link></div>
 
-  const podeEditar = (os.status === 'aberta' || os.status === 'em_andamento') && (isAdmin || perfil?.uid === os.mecanico_id)
+  const podeEditar = (os.status === 'aberta' || os.status === 'em_andamento' || os.status === 'aguardando_pecas') && (isAdmin || perfil?.uid === os.mecanico_id)
 
   async function mudarStatus(status: StatusOS) { await atualizarStatusOS(id, status) }
 
@@ -195,7 +195,10 @@ export default function OSDetalhePage({ params }: { params: { id: string } }) {
                 <button onClick={() => mudarStatus('aguardando_pecas')} className="btn-secondary text-sm">⏸ Aguardando peças</button>
                 <Link href={`/os/${id}/finalizar`} className="btn-primary text-sm bg-green-600 hover:bg-green-700">✓ Finalizar OS</Link>
               </>}
-              {os.status === 'aguardando_pecas' && <button onClick={() => mudarStatus('em_andamento')} className="btn-primary text-sm">▶ Retomar</button>}
+              {os.status === 'aguardando_pecas' && <>
+  <button onClick={() => mudarStatus('em_andamento')} className="btn-primary text-sm">▶ Retomar</button>
+  <Link href={`/os/${id}/finalizar`} className="btn-primary text-sm bg-green-600 hover:bg-green-700">✓ Finalizar OS</Link>
+</>}
               {isAdmin && os.status !== 'concluida' && os.status !== 'cancelada' && (
                 <button onClick={() => mudarStatus('cancelada')} className="btn-ghost text-sm text-red-600 border-red-200 hover:bg-red-50">✕ Cancelar OS</button>
               )}
