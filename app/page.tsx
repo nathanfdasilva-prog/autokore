@@ -218,7 +218,7 @@ export default function LandingPage() {
             <div className="feat-card">
               <div className="feat-icon">🔧</div>
               <div className="feat-title">A dor da bancada</div>
-              <div className="feat-desc">Criado por um ex-mecânico que cansou do caderno, da papelada e de esquecer a última revisão de cada cliente. Cada tela foi pensada pra quem está com a mão na graxa.</div>
+              <div className="feat-desc">Criado por um mecânico que está na oficina todo dia e cansou do caderno, da papelada e de esquecer a última revisão de cada cliente. Cada tela foi pensada por quem está com a mão na graxa — porque é.</div>
             </div>
             <div className="feat-card">
               <div className="feat-icon">🤝</div>
