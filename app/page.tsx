@@ -41,6 +41,13 @@ export default function LandingPage() {
         createdAt: serverTimestamp(),
         origem:    'landing_page',
       })
+      // Dispara evento de conversão no GA4
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'generate_lead', {
+          event_category: 'engagement',
+          event_label: 'landing_page_form',
+        })
+      }
       setMsg(`✅ Obrigado, ${nome}! Te avisaremos em breve.`)
       setNome(''); setTel('')
     } catch (e) {
