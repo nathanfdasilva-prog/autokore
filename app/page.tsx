@@ -8,6 +8,8 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
 import './landing.css'
 
+// ⚠️ TROCAR pela site key correta de 40 caracteres (painel reCAPTCHA → ⚙️ Configurações).
+// A atual tem 39 chars e provavelmente truncou no copia-e-cola.
 const RECAPTCHA_SITE_KEY = '6LcFufQsAAAACtanHMaZQhEqolT6eoD3xR2bELT'
 
 export default function LandingPage() {
@@ -24,23 +26,50 @@ export default function LandingPage() {
 
   if (loading || user) return null
 
+  // Obtém o token do reCAPTCHA com timeout. NUNCA trava o envio:
+  // se o grecaptcha não existir, resolve null; se demorar mais de 4s, rejeita
+  // (e o chamador ignora o erro e segue sem token).
+  const obterTokenRecaptcha = (): Promise<string | null> => {
+    return new Promise((resolve, reject) => {
+      const g = typeof window !== 'undefined' ? (window as any).grecaptcha : undefined
+      if (!g || typeof g.execute !== 'function') {
+        resolve(null) // reCAPTCHA não carregou — segue sem token
+        return
+      }
+      const timer = setTimeout(() => reject(new Error('timeout')), 4000)
+      try {
+        g.ready(() => {
+          g.execute(RECAPTCHA_SITE_KEY, { action: 'lead_form' })
+            .then((token: string) => { clearTimeout(timer); resolve(token || null) })
+            .catch((err: any) => { clearTimeout(timer); reject(err) })
+        })
+      } catch (err) {
+        clearTimeout(timer)
+        reject(err)
+      }
+    })
+  }
+
   const capturarLead = async () => {
     if (!nome.trim() || !tel.trim()) { setMsg('⚠️ Preencha seu nome e WhatsApp.'); return }
     const telLimpo = tel.replace(/\D/g, '')
-    if (telLimpo.length < 10) { setMsg('⚠️ Digite um WhatsApp valido com DDD.'); return }
+    if (telLimpo.length < 10) { setMsg('⚠️ Digite um WhatsApp válido com DDD.'); return }
     setEnviando(true)
     try {
-      if (typeof window !== 'undefined' && (window as any).grecaptcha) {
-        await new Promise<void>((resolve) => { (window as any).grecaptcha.ready(resolve) })
-        const token = await (window as any).grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'lead_form' })
-        if (!token) throw new Error('reCAPTCHA falhou')
-      }
+      // reCAPTCHA é opcional: tentamos pegar o token, mas se falhar/demorar,
+      // ignoramos e seguimos com o envio mesmo assim.
+      await obterTokenRecaptcha().catch((err) => {
+        console.warn('[reCAPTCHA] ignorado:', err?.message || err)
+        return null
+      })
+
       await addDoc(collection(db, 'leads'), {
         nome:      nome.trim(),
         whatsapp:  telLimpo,
         createdAt: serverTimestamp(),
         origem:    'landing_page',
       })
+
       // Dispara evento de conversão no GA4
       if (typeof window !== 'undefined' && (window as any).gtag) {
         (window as any).gtag('event', 'generate_lead', {
@@ -48,9 +77,11 @@ export default function LandingPage() {
           event_label: 'landing_page_form',
         })
       }
+
       setMsg(`✅ Obrigado, ${nome}! Te avisaremos em breve.`)
       setNome(''); setTel('')
     } catch (e) {
+      console.error('[lead] erro ao salvar:', e)
       setMsg('❌ Erro ao enviar. Tente novamente.')
     } finally {
       setEnviando(false)
