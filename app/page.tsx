@@ -8,8 +8,6 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
 import './landing.css'
 
-// ⚠️ TROCAR pela site key correta de 40 caracteres (painel reCAPTCHA → ⚙️ Configurações).
-// A atual tem 39 chars e provavelmente truncou no copia-e-cola.
 const RECAPTCHA_SITE_KEY = '6LcFufQsAAAAACtanHMaZQhEqolT6eoD3xR2bELT'
 
 export default function LandingPage() {
@@ -78,13 +76,20 @@ export default function LandingPage() {
         })
       }
 
-      setMsg(`✅ Obrigado, ${nome}! Te avisaremos em breve.`)
+      setMsg(`✅ Obrigado, ${nome}! Te chamamos assim que possível.`)
       setNome(''); setTel('')
     } catch (e) {
       console.error('[lead] erro ao salvar:', e)
       setMsg('❌ Erro ao enviar. Tente novamente.')
     } finally {
       setEnviando(false)
+    }
+  }
+
+  // Rola suavemente até o bloco de captura de contato
+  const irParaContato = () => {
+    if (typeof document !== 'undefined') {
+      document.getElementById('contato')?.scrollIntoView({ behavior: 'smooth' })
     }
   }
 
@@ -107,26 +112,40 @@ export default function LandingPage() {
       </nav>
 
       {/* HERO */}
+      {/*
+        ESCOLHA O TÍTULO: deixei 3 opções abaixo. A opção 1 está ativa.
+        Pra trocar, comente a <h1> ativa e descomente a que preferir.
+
+        OPÇÃO 1 (dor direta — minha recomendação):
+          Sua oficina ainda roda no <span>caderno</span>?
+          Controle tudo pelo celular.
+
+        OPÇÃO 2 (transformação):
+          Do <span>caderno</span> ao controle total da sua oficina — no celular.
+
+        OPÇÃO 3 (mais institucional):
+          O sistema de gestão feito <span>pra oficina de verdade</span>.
+      */}
       <section className="lp-hero">
         <div className="lp-hero-inner">
           <div>
-            <div className="lp-badge"><span className="badge-dot" />Novo: Avaliações NPS integradas</div>
-            <h1 className="lp-h1">Gestão completa para sua <span>oficina mecânica</span></h1>
-            <p className="lp-sub">Do agendamento ao faturamento. Controle ordens de serviço, estoque, equipe e clientes em um só lugar.</p>
+            <div className="lp-badge"><span className="badge-dot" />Grátis durante a fase beta</div>
+            <h1 className="lp-h1">Sua oficina ainda roda no <span>caderno</span>? Controle tudo pelo celular.</h1>
+            <p className="lp-sub">Ordens de serviço, agenda, estoque e clientes em um só lugar. Sem planilha, sem papel perdido. Grátis pra começar, sem cartão de crédito.</p>
             <div className="lp-btns">
-              <Link href="/registro" className="btn-primary">Começar grátis →</Link>
-              <a href="#planos" className="btn-secondary">Ver planos</a>
+              <Link href="/registro" className="btn-primary">Criar conta grátis →</Link>
+              <a href="#como-funciona" className="btn-secondary">Ver como funciona</a>
             </div>
             <div className="lp-trust">
-              <div className="trust-avatars"><span>KL</span><span>MS</span><span>RB</span><span>+</span></div>
-              <div className="trust-text"><strong>Oficinas ativas</strong> usando o AutoKore hoje</div>
+              <div className="trust-avatars"><span>🔧</span><span>📅</span><span>📦</span><span>+</span></div>
+              <div className="trust-text"><strong>Em fase beta</strong> — entre agora e ajude a moldar o sistema</div>
             </div>
           </div>
           <div className="lp-mockup-wrap">
             <div className="lp-mockup">
               <div className="mockup-bar">
                 <div className="dot dot-r" /><div className="dot dot-y" /><div className="dot dot-g" />
-                <div className="mockup-url">autokore.vercel.app/dashboard</div>
+                <div className="mockup-url">autokore.com.br/dashboard</div>
               </div>
               <div className="mockup-body">
                 <div className="dash-header"><div className="dash-title">Dashboard</div><div className="dash-date">Maio 2026</div></div>
@@ -187,24 +206,30 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* DEPOIMENTOS */}
+      {/* FEITO POR QUEM VIVE A OFICINA (substitui depoimentos) */}
       <section className="lp-section" style={{background:'#0a0a0a'}}>
         <div className="lp-section-inner">
-          <div className="section-label">Depoimentos</div>
-          <h2 className="section-title">O que dizem nossas oficinas</h2>
-          <div className="features-grid">
-            {[
-              {nome:'Carlos Souza',oficina:'CS Mecânica',nota:'⭐⭐⭐⭐⭐',texto:'Antes eu anotava tudo em caderno. Hoje controlo minhas OS, estoque e clientes pelo celular. Melhorou muito minha organização!'},
-              {nome:'Ana Lima',oficina:'Auto Center Lima',nota:'⭐⭐⭐⭐⭐',texto:'O sistema de agendamento me ajudou a acabar com os conflitos de horário. Meus clientes adoram receber a confirmação pelo WhatsApp.'},
-              {nome:'Roberto Alves',oficina:'Oficina Alves',nota:'⭐⭐⭐⭐⭐',texto:'Em menos de uma semana já estava usando tudo. O suporte é excelente e o sistema é muito intuitivo. Recomendo!'},
-            ].map((d,i) => (
-              <div className="feat-card" key={i}>
-                <div style={{fontSize:'18px',marginBottom:'8px'}}>{d.nota}</div>
-                <div style={{color:'#d1d5db',fontSize:'14px',fontStyle:'italic',marginBottom:'12px'}}>"{d.texto}"</div>
-                <div style={{color:'#E85D04',fontWeight:700,fontSize:'13px'}}>{d.nome}</div>
-                <div style={{color:'#6b7280',fontSize:'12px'}}>{d.oficina}</div>
-              </div>
-            ))}
+          <div className="section-label">Quem está por trás</div>
+          <h2 className="section-title">Feito por quem vive a oficina por dentro</h2>
+          <p className="section-sub" style={{maxWidth:'620px',margin:'0 auto'}}>
+            O AutoKore nasceu da dupla que entende os dois lados do balcão: um ex-mecânico cansado de anotar tudo em caderno e perder papel de orçamento, e um vendedor que vive de atender e fidelizar cliente. Juntamos a dor de quem está na bancada com a de quem está no atendimento.
+          </p>
+          <div className="features-grid" style={{marginTop:'32px'}}>
+            <div className="feat-card">
+              <div className="feat-icon">🔧</div>
+              <div className="feat-title">A dor da bancada</div>
+              <div className="feat-desc">Criado por um ex-mecânico que cansou do caderno, da papelada e de esquecer a última revisão de cada cliente. Cada tela foi pensada pra quem está com a mão na graxa.</div>
+            </div>
+            <div className="feat-card">
+              <div className="feat-icon">🤝</div>
+              <div className="feat-title">A dor do atendimento</div>
+              <div className="feat-desc">Construído junto com quem vive de vender e fidelizar. Por isso o foco em organizar cliente, agenda e retorno — não só registrar serviço.</div>
+            </div>
+            <div className="feat-card">
+              <div className="feat-icon">🚀</div>
+              <div className="feat-title">Você molda com a gente</div>
+              <div className="feat-desc">Estamos em fase beta. Entrando agora, sua opinião pesa de verdade no que vem pela frente. É a hora de entrar como fundador da comunidade.</div>
+            </div>
           </div>
         </div>
       </section>
@@ -227,6 +252,9 @@ export default function LandingPage() {
                 <div className="step-desc">{s.desc}</div>
               </div>
             ))}
+          </div>
+          <div style={{textAlign:'center',marginTop:'40px'}}>
+            <Link href="/registro" className="btn-primary">Criar conta grátis →</Link>
           </div>
         </div>
       </section>
@@ -282,7 +310,7 @@ export default function LandingPage() {
                 <li>API de integracao</li>
                 <li>Suporte dedicado</li>
               </ul>
-              <a href="https://wa.me/5569999999999?text=Olá!%20Tenho%20interesse%20no%20plano%20Rede%20do%20AutoKore." target="_blank" rel="noopener noreferrer" className="btn-plan btn-plan-outline">Falar com vendas</a>
+              <button type="button" onClick={irParaContato} className="btn-plan btn-plan-outline">Tenho interesse</button>
             </div>
           </div>
         </div>
@@ -311,17 +339,25 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* LEAD */}
-      <section className="lp-lead">
+      {/* CTA FINAL + CAPTURA */}
+      <section className="lp-lead" id="contato">
         <div className="lead-inner">
-          <div className="section-label" style={{textAlign:'center'}}>Lista de espera</div>
-          <h2 className="section-title">Quer ser avisado das novidades?</h2>
-          <p style={{color:'#9CA3AF',marginTop:'12px'}}>Deixe seu WhatsApp e te avisamos sobre atualizacoes e novos recursos.</p>
+          <div className="section-label" style={{textAlign:'center'}}>Comece agora</div>
+          <h2 className="section-title">Pronto pra largar o caderno?</h2>
+          <p style={{color:'#9CA3AF',marginTop:'12px'}}>Crie sua conta grátis em 2 minutos. Sem cartão, sem compromisso.</p>
+
+          <div style={{textAlign:'center',margin:'24px 0 8px'}}>
+            <Link href="/registro" className="btn-primary">Criar conta grátis →</Link>
+          </div>
+
+          <p style={{color:'#6B7280',fontSize:'13px',textAlign:'center',margin:'20px 0 12px'}}>
+            Prefere que a gente te chame antes? Deixa seu WhatsApp:
+          </p>
           <div className="lead-form">
             <input className="lead-input" type="text" placeholder="Seu nome" value={nome} onChange={e => setNome(e.target.value)} disabled={enviando} />
             <input className="lead-input" type="tel" placeholder="WhatsApp (11) 99999-9999" value={tel} onChange={e => setTel(e.target.value)} disabled={enviando} />
-            <button className="btn-primary" onClick={capturarLead} disabled={enviando} style={{opacity: enviando ? 0.7 : 1}}>
-              {enviando ? 'Enviando...' : 'Quero ser avisado'}
+            <button className="btn-secondary" onClick={capturarLead} disabled={enviando} style={{opacity: enviando ? 0.7 : 1}}>
+              {enviando ? 'Enviando...' : 'Quero que me chamem'}
             </button>
           </div>
           <div className="lead-note">{msg}</div>
