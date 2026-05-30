@@ -212,7 +212,7 @@ export default function LandingPage() {
           <div className="section-label">Quem está por trás</div>
           <h2 className="section-title">Feito por quem vive a oficina por dentro</h2>
           <p className="section-sub" style={{maxWidth:'620px',margin:'0 auto'}}>
-            O AutoKore nasceu da dupla que entende os dois lados do balcão: um ex-mecânico cansado de anotar tudo em caderno e perder papel de orçamento, e um vendedor que vive de atender e fidelizar cliente. Juntamos a dor de quem está na bancada com a de quem está no atendimento.
+            O AutoKore nasceu da dupla que entende os dois lados do balcão: um mecânico que vive a oficina todo dia e cansou de anotar tudo em caderno e perder papel de orçamento, e um vendedor que vive de atender e fidelizar cliente. Não é teoria — é a ferramenta que a gente usa na prática.
           </p>
           <div className="features-grid" style={{marginTop:'32px'}}>
             <div className="feat-card">
