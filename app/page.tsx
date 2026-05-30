@@ -10,7 +10,7 @@ import './landing.css'
 
 // ⚠️ TROCAR pela site key correta de 40 caracteres (painel reCAPTCHA → ⚙️ Configurações).
 // A atual tem 39 chars e provavelmente truncou no copia-e-cola.
-const RECAPTCHA_SITE_KEY = '6LcFufQsAAAACtanHMaZQhEqolT6eoD3xR2bELT'
+const RECAPTCHA_SITE_KEY = '6LcFufQsAAAAACtanHMaZQhEqolT6eoD3xR2bELT'
 
 export default function LandingPage() {
   const router = useRouter()
