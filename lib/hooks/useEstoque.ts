@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   collection, query, where, orderBy, onSnapshot,
-  doc, updateDoc, addDoc, getDocs,
+  doc, updateDoc, addDoc, getDocs, getDoc,
   serverTimestamp, increment, db,
 } from '../firebase/firestore'
 import { docToData } from '../firebase/firestore'
@@ -69,45 +69,50 @@ export async function baixarEstoque(params: {
   itens: Array<{ produto_id: string; quantidade: number; nome: string }>
 }): Promise<void> {
   const { oficina_id, usuario_id, usuario_nome, os_id, itens } = params
-  const { runTransaction, db } = await import('../firebase/firestore')
 
-  await runTransaction(db, async (transaction) => {
-    // 1. TODAS as leituras primeiro
-    const refs = itens.map(item => doc(db, 'estoque', item.produto_id))
-    const snaps = await Promise.all(refs.map(ref => transaction.get(ref)))
+  if (itens.length === 0) return
 
-    // 2. Valida tudo antes de escrever
-    for (let i = 0; i < itens.length; i++) {
-      const item = itens[i]
-      const snap = snaps[i]
-      if (!snap.exists()) throw new Error(`Peça "${item.nome}" não encontrada no estoque.`)
-      const estoque = snap.data() as ItemEstoque
-      if (estoque.quantidade < item.quantidade) {
-        throw new Error(`Estoque insuficiente para "${item.nome}". Disponível: ${estoque.quantidade}, necessário: ${item.quantidade}.`)
-      }
+  // 1. LÊ todos os itens de estoque uma única vez (sem transação) e valida.
+  //    Usar transação aqui causava loop de retry (resource-exhausted) porque
+  //    a regra de segurança de 'movimentacoes_estoque' faz um get() interno,
+  //    o que conflitava com a fase de escrita da transação.
+  const refs = itens.map(item => doc(db, 'estoque', item.produto_id))
+  const snaps = await Promise.all(refs.map(ref => getDoc(ref)))
+
+  for (let i = 0; i < itens.length; i++) {
+    const item = itens[i]
+    const snap = snaps[i]
+    if (!snap.exists()) {
+      throw new Error(`Peça "${item.nome}" não encontrada no estoque.`)
     }
-
-    // 3. TODAS as escritas depois
-    for (let i = 0; i < itens.length; i++) {
-      const item = itens[i]
-      const ref  = refs[i]
-
-      transaction.update(ref, {
-        quantidade: increment(-item.quantidade),
-        updatedAt:  serverTimestamp(),
-      })
-
-      const movRef = doc(collection(db, 'movimentacoes_estoque'))
-      transaction.set(movRef, {
-        item_id:      item.produto_id,
-        oficina_id,
-        tipo:         'saida',
-        quantidade:   item.quantidade,
-        os_id,
-        usuario_id,
-        usuario_nome,
-        createdAt:    serverTimestamp(),
-      } satisfies Omit<MovimentacaoEstoque, 'id'>)
+    const estoque = snap.data() as ItemEstoque
+    if (estoque.quantidade < item.quantidade) {
+      throw new Error(
+        `Estoque insuficiente para "${item.nome}". Disponível: ${estoque.quantidade}, necessário: ${item.quantidade}.`
+      )
     }
-  })
+  }
+
+  // 2. ESCRITAS: increment() já é atômico e seguro contra concorrência por si só,
+  //    não precisa de transação. Baixa o estoque e registra a movimentação de cada peça.
+  for (let i = 0; i < itens.length; i++) {
+    const item = itens[i]
+    const ref  = refs[i]
+
+    await updateDoc(ref, {
+      quantidade: increment(-item.quantidade),
+      updatedAt:  serverTimestamp(),
+    })
+
+    await addDoc(collection(db, 'movimentacoes_estoque'), {
+      item_id:      item.produto_id,
+      oficina_id,
+      tipo:         'saida',
+      quantidade:   item.quantidade,
+      os_id,
+      usuario_id,
+      usuario_nome,
+      createdAt:    serverTimestamp(),
+    } satisfies Omit<MovimentacaoEstoque, 'id'>)
+  }
 }
