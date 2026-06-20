@@ -5,7 +5,7 @@
 // ============================================================
 
 import { useState, useEffect } from 'react'
-import { Plus, Users, X, Save, Mail, User, Shield } from 'lucide-react'
+import { Plus, Users, X, Save, User, Shield, Percent } from 'lucide-react'
 import {
   collection, query, where, onSnapshot, doc,
   updateDoc, serverTimestamp, db,
@@ -28,6 +28,8 @@ export default function EquipePage() {
     email: '',
     senha: '',
     role:  'mecanico' as Role,
+    comissao_mao_obra: 0,
+    comissao_peca: 0,
   })
 
   // Busca membros da oficina em tempo real
@@ -47,7 +49,7 @@ export default function EquipePage() {
     return () => unsub()
   }, [perfil?.oficina_id])
 
-  function setField(k: keyof typeof form, v: string) {
+  function setField(k: keyof typeof form, v: string | number) {
     setForm(f => ({ ...f, [k]: v }))
   }
 
@@ -65,9 +67,11 @@ export default function EquipePage() {
         senha:      form.senha,
         role:       form.role,
         oficina_id: perfil!.oficina_id,
+        comissao_mao_obra: form.comissao_mao_obra,
+        comissao_peca:     form.comissao_peca,
       })
       setModal(false)
-      setForm({ nome: '', email: '', senha: '', role: 'mecanico' })
+      setForm({ nome: '', email: '', senha: '', role: 'mecanico', comissao_mao_obra: 0, comissao_peca: 0 })
     } catch (e: any) {
       setErro(
         e.code === 'auth/email-already-in-use'
@@ -89,6 +93,14 @@ export default function EquipePage() {
   async function mudarRole(membro: Usuario, role: Role) {
     await updateDoc(doc(db, 'users', membro.uid), {
       role,
+      updatedAt: serverTimestamp(),
+    })
+  }
+
+  async function salvarComissao(membro: Usuario, comissao_mao_obra: number, comissao_peca: number) {
+    await updateDoc(doc(db, 'users', membro.uid), {
+      comissao_mao_obra,
+      comissao_peca,
       updatedAt: serverTimestamp(),
     })
   }
@@ -129,7 +141,7 @@ export default function EquipePage() {
                 Administradores
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {admins.map(m => <MembroCard key={m.uid} membro={m} onToggleAtivo={toggleAtivo} onMudarRole={mudarRole} isProprioUsuario={m.uid === perfil?.uid} />)}
+                {admins.map(m => <MembroCard key={m.uid} membro={m} onToggleAtivo={toggleAtivo} onMudarRole={mudarRole} onSalvarComissao={salvarComissao} isProprioUsuario={m.uid === perfil?.uid} />)}
               </div>
             </div>
           )}
@@ -156,6 +168,7 @@ export default function EquipePage() {
                     membro={m}
                     onToggleAtivo={toggleAtivo}
                     onMudarRole={mudarRole}
+                    onSalvarComissao={salvarComissao}
                     isProprioUsuario={m.uid === perfil?.uid}
                   />
                 ))}
@@ -168,7 +181,7 @@ export default function EquipePage() {
       {/* ===== MODAL ADICIONAR ===== */}
       {modal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-bold text-gray-800">Novo membro</h2>
               <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600">
@@ -234,6 +247,39 @@ export default function EquipePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Comissão */}
+              <div className="pt-3 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-600 mb-2 flex items-center gap-1.5">
+                  <Percent size={12} className="text-orange-500" />
+                  Comissão deste membro
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">% mão de obra</label>
+                    <input
+                      type="number" min={0} max={100}
+                      value={form.comissao_mao_obra}
+                      onChange={e => setField('comissao_mao_obra', Number(e.target.value))}
+                      className="input-base"
+                      placeholder="40"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">% peça</label>
+                    <input
+                      type="number" min={0} max={100}
+                      value={form.comissao_peca}
+                      onChange={e => setField('comissao_peca', Number(e.target.value))}
+                      className="input-base"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  Na maioria das oficinas a comissão é só sobre a mão de obra. Deixe 0 se for salário fixo.
+                </p>
+              </div>
             </div>
 
             <div className="flex gap-3 mt-5">
@@ -256,13 +302,29 @@ export default function EquipePage() {
 
 // ---- Card individual de membro ----
 function MembroCard({
-  membro, onToggleAtivo, onMudarRole, isProprioUsuario,
+  membro, onToggleAtivo, onMudarRole, onSalvarComissao, isProprioUsuario,
 }: {
   membro: Usuario
   onToggleAtivo: (m: Usuario) => void
   onMudarRole: (m: Usuario, r: Role) => void
+  onSalvarComissao: (m: Usuario, mao: number, peca: number) => Promise<void>
   isProprioUsuario: boolean
 }) {
+  const [editandoComissao, setEditandoComissao] = useState(false)
+  const [mao, setMao]   = useState(membro.comissao_mao_obra ?? 0)
+  const [peca, setPeca] = useState(membro.comissao_peca ?? 0)
+  const [salvando, setSalvando] = useState(false)
+
+  async function handleSalvar() {
+    setSalvando(true)
+    try {
+      await onSalvarComissao(membro, mao, peca)
+      setEditandoComissao(false)
+    } finally {
+      setSalvando(false)
+    }
+  }
+
   return (
     <div className={`card border transition ${membro.ativo ? 'border-gray-200' : 'border-gray-100 opacity-60'}`}>
       <div className="flex items-start gap-3">
@@ -291,6 +353,53 @@ function MembroCard({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Comissão */}
+      <div className="mt-3 pt-3 border-t border-gray-100">
+        {!editandoComissao ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+              <Percent size={12} className="text-orange-500" />
+              <span>Mão de obra: <strong>{membro.comissao_mao_obra ?? 0}%</strong></span>
+              {(membro.comissao_peca ?? 0) > 0 && (
+                <span>· Peça: <strong>{membro.comissao_peca}%</strong></span>
+              )}
+            </div>
+            <button
+              onClick={() => { setMao(membro.comissao_mao_obra ?? 0); setPeca(membro.comissao_peca ?? 0); setEditandoComissao(true) }}
+              className="text-xs text-orange-500 hover:underline"
+            >
+              Editar
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[10px] font-medium text-gray-500 mb-0.5">% mão de obra</label>
+                <input type="number" min={0} max={100} value={mao}
+                  onChange={e => setMao(Number(e.target.value))}
+                  className="input-base py-1 text-sm" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-medium text-gray-500 mb-0.5">% peça</label>
+                <input type="number" min={0} max={100} value={peca}
+                  onChange={e => setPeca(Number(e.target.value))}
+                  className="input-base py-1 text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setEditandoComissao(false)} className="flex-1 text-xs py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition">
+                Cancelar
+              </button>
+              <button onClick={handleSalvar} disabled={salvando}
+                className="flex-1 text-xs py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition disabled:opacity-50">
+                {salvando ? '...' : 'Salvar %'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Ações — não exibe para si mesmo */}

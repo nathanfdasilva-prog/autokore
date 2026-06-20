@@ -13,6 +13,8 @@ export interface Usuario {
   oficina_id: string
   avatar_url?: string
   ativo: boolean
+  comissao_mao_obra?: number  // % sobre a mão de obra (ex: 40)
+  comissao_peca?: number      // % sobre a peça (normalmente 0)
   createdAt: Date
 }
 

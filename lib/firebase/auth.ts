@@ -91,8 +91,10 @@ export async function registrarUsuario(params: {
   senha:      string
   role:       Role
   oficina_id: string
+  comissao_mao_obra?: number
+  comissao_peca?:     number
 }) {
-  const { nome, email, senha, role, oficina_id } = params
+  const { nome, email, senha, role, oficina_id, comissao_mao_obra = 0, comissao_peca = 0 } = params
   const cred = await createUserWithEmailAndPassword(auth, email, senha)
   const user = cred.user
   await updateProfile(user, { displayName: nome })
@@ -104,8 +106,10 @@ export async function registrarUsuario(params: {
     oficina_id,
     ativo:      true,
     avatar_url: '',
+    comissao_mao_obra,
+    comissao_peca,
     createdAt:  serverTimestamp(),
-  } satisfies Omit<Usuario, 'createdAt'> & { createdAt: ReturnType<typeof serverTimestamp> })
+  })
   return user
 }
 
