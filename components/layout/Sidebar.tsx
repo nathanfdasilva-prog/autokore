@@ -32,6 +32,7 @@ const NAV_ADMIN: NavItem[] = [
 ]
 const NAV_OP: NavItem[] = [
   { label: 'Ordens de Servico', href: '/os',            icon: <ClipboardList size={17} /> },
+  { label: 'Meu Painel',        href: '/meu-painel',    icon: <BarChart2     size={17} /> },
   { label: 'Configuracoes',     href: '/configuracoes', icon: <Settings      size={17} /> },
 ]
 
