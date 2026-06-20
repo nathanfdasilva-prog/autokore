@@ -19,9 +19,6 @@ export interface Usuario {
 // ---------- OFICINA ----------
 export type Plano = 'basico' | 'pro' | 'premium'
 
-// ---------- OFICINA ----------
-export type Plano = 'basico' | 'pro' | 'premium'
-
 export interface Oficina {
   id:                string
   nome:              string
@@ -36,16 +33,6 @@ export interface Oficina {
   asaas_id?:         string
   assinatura_id?:    string
   trial_ate?:        Date
-}
-  id: string
-  nome: string
-  cnpj?: string
-  endereco?: string
-  whatsapp?: string
-  plano: Plano
-  dono_uid: string
-  ativo: boolean
-  createdAt: Date
 }
 
 // ---------- CLIENTE / VEÍCULO ----------
@@ -116,6 +103,7 @@ export interface MovimentacaoEstoque {
 
 // ---------- ORDEM DE SERVIÇO ----------
 export type StatusOS =
+  | 'aguardando_aprovacao'
   | 'aberta'
   | 'em_andamento'
   | 'aguardando_pecas'
@@ -128,6 +116,10 @@ export interface ItemOS {
   quantidade: number
   preco_unitario: number
   subtotal: number
+  // 'estoque' = peça do estoque (baixa ao finalizar).
+  // 'manual'  = peça digitada na mão (não mexe no estoque).
+  // Ausente em OS antigas = tratado como 'estoque'.
+  tipo_item?: 'estoque' | 'manual'
 }
 
 export interface OrdemServico {
@@ -141,6 +133,7 @@ export interface OrdemServico {
   veiculo: string         // Ex: "VW Gol G5"
   placa: string
   km_entrada?: number
+  km_saida?: number
   tipo_veiculo: 'carro' | 'moto'
 
   // Operacional
@@ -162,6 +155,9 @@ export interface OrdemServico {
   // Agendamento vinculado (opcional)
   agendamento_id?: string
 
+  // Avaliação
+  avaliada?: boolean
+
   // Timestamps
   createdAt: Date
   updatedAt: Date
@@ -181,7 +177,7 @@ export interface Agendamento {
   id: string
   oficina_id: string
 
-  // Campos obrigatórios (conforme requisito)
+  // Campos obrigatórios
   cliente_nome: string
   cliente_whatsapp: string
   veiculo: string

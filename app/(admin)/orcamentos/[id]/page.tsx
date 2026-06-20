@@ -87,6 +87,7 @@ export default function OrcamentoDetalhePage() {
         mecanico_id:        perfil.uid,
         mecanico_nome:      perfil.nome,
         agendamento_id:     undefined,
+        status_inicial:     'em_andamento',
       })
       await atualizarStatusOrcamento(orc.id, 'convertido', { os_id })
       router.push(`/os/${os_id}`)

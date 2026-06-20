@@ -13,10 +13,12 @@ import {
 import type { StatusOS } from '@/lib/types'
 
 const STATUS_LABELS: Record<StatusOS, string> = {
+  aguardando_aprovacao: 'Aguardando aprovação',
   aberta: 'Aberta', em_andamento: 'Em andamento',
   aguardando_pecas: 'Aguardando peças', concluida: 'Concluída', cancelada: 'Cancelada',
 }
 const STATUS_CLS: Record<StatusOS, string> = {
+  aguardando_aprovacao: 'badge badge-gold',
   aberta: 'badge badge-blue', em_andamento: 'badge badge-orange',
   aguardando_pecas: 'badge badge-gray', concluida: 'badge badge-green', cancelada: 'badge badge-red',
 }

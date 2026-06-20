@@ -17,6 +17,7 @@ import { doc, updateDoc, db } from '@/lib/firebase/firestore'
 import type { Cliente, Veiculo, StatusOS } from '@/lib/types'
 
 const STATUS_CLS: Record<StatusOS, string> = {
+  aguardando_aprovacao: 'badge badge-gold',
   aberta:           'badge badge-blue',
   em_andamento:     'badge badge-orange',
   aguardando_pecas: 'badge badge-gray',
@@ -24,6 +25,7 @@ const STATUS_CLS: Record<StatusOS, string> = {
   cancelada:        'badge badge-red',
 }
 const STATUS_LABEL: Record<StatusOS, string> = {
+  aguardando_aprovacao: 'Aguard. aprovação',
   aberta: 'Aberta', em_andamento: 'Em andamento',
   aguardando_pecas: 'Aguard. peças', concluida: 'Concluída', cancelada: 'Cancelada',
 }

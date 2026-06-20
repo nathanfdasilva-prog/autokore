@@ -17,10 +17,12 @@ import FaturamentoChart from '@/components/dashboard/FaturamentoChart'
 import type { StatusOS } from '@/lib/types'
 
 const STATUS_LABEL: Record<StatusOS, string> = {
+  aguardando_aprovacao: 'Aguard. aprovacao',
   aberta: 'Aberta', em_andamento: 'Em andamento',
   aguardando_pecas: 'Aguard. pecas', concluida: 'Concluida', cancelada: 'Cancelada',
 }
 const STATUS_CLS: Record<StatusOS, string> = {
+  aguardando_aprovacao: 'badge badge-gold',
   aberta: 'badge badge-blue', em_andamento: 'badge badge-orange',
   aguardando_pecas: 'badge badge-gray', concluida: 'badge badge-green', cancelada: 'badge badge-red',
 }
@@ -33,7 +35,7 @@ export default function DashboardPage() {
   const { itensCriticos } = useEstoque()
 
   const osAtivas = ordens.filter(os =>
-    ['aberta', 'em_andamento', 'aguardando_pecas'].includes(os.status)
+    ['aguardando_aprovacao', 'aberta', 'em_andamento', 'aguardando_pecas'].includes(os.status)
   ).slice(0, 5)
 
   const hoje = new Date()

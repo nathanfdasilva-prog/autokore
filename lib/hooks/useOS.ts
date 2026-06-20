@@ -81,6 +81,7 @@ export async function criarOS(dados: {
   mecanico_id:         string
   mecanico_nome:       string
   agendamento_id?:     string
+  status_inicial?:     StatusOS   // padrão: aguardando_aprovacao
 }): Promise<string> {
   const numero = await proximoNumeroOS(dados.oficina_id)
 
@@ -95,7 +96,7 @@ export async function criarOS(dados: {
     mecanico_id:         dados.mecanico_id,
     mecanico_nome:       dados.mecanico_nome,
     numero,
-    status:              'aberta' as StatusOS,
+    status:              dados.status_inicial ?? ('aguardando_aprovacao' as StatusOS),
     itens:               [],
     valor_pecas:         0,
     valor_mao_obra:      0,
@@ -147,10 +148,15 @@ export async function finalizarOS(params: {
 }): Promise<void> {
   const { os_id, oficina_id, usuario_id, usuario_nome, itens, valor_mao_obra, forma_pagamento, observacoes } = params
 
-  if (itens.length > 0) {
+  // Só dá baixa nas peças que vieram do ESTOQUE.
+  // Peças digitadas na mão (tipo_item === 'manual') não mexem no estoque.
+  // OS antigas sem o campo são tratadas como estoque (comportamento de antes).
+  const itensEstoque = itens.filter(i => i.tipo_item !== 'manual')
+
+  if (itensEstoque.length > 0) {
     await baixarEstoque({
       oficina_id, usuario_id, usuario_nome, os_id,
-      itens: itens.map(i => ({ produto_id: i.produto_id, quantidade: i.quantidade, nome: i.nome })),
+      itens: itensEstoque.map(i => ({ produto_id: i.produto_id, quantidade: i.quantidade, nome: i.nome })),
     })
   }
 

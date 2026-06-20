@@ -11,6 +11,7 @@ import { Car, Bike, Clock, DollarSign, ChevronRight, Package } from 'lucide-reac
 import type { OrdemServico, StatusOS } from '@/lib/types'
 
 const STATUS_CONFIG: Record<StatusOS, { label: string; className: string }> = {
+  aguardando_aprovacao:{ label: 'Aguard. aprovação', className: 'badge badge-gold' },
   aberta:          { label: 'Aberta',          className: 'badge badge-blue' },
   em_andamento:    { label: 'Em andamento',    className: 'badge badge-orange' },
   aguardando_pecas:{ label: 'Aguard. peças',   className: 'badge badge-gray' },
