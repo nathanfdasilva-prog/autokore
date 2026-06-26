@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import {
   collection, query, where, orderBy,
-  onSnapshot, db, Timestamp,
+  onSnapshot, db,
 } from '../firebase/firestore'
 import { docToData } from '../firebase/firestore'
 import type { OrdemServico } from '../types'
@@ -18,11 +18,11 @@ export interface ResumoComissao {
   comissao_total:    number
 }
 
-// Calcula a producao e a comissao do mecanico logado num periodo.
-// A comissao conta pela data de finalizacao da OS (finalizadaAt).
+// Busca as OS concluidas do mecanico e filtra o periodo no codigo
+// (mais robusto que filtrar a data direto no Firestore).
 export function useMinhaComissao(de: Date, ate: Date) {
   const { perfil } = useAuth()
-  const [ordens,  setOrdens]  = useState<OrdemServico[]>([])
+  const [todas,   setTodas]   = useState<OrdemServico[]>([])
   const [loading, setLoading] = useState(true)
 
   const pctMaoObra = perfil?.comissao_mao_obra ?? 0
@@ -33,19 +33,24 @@ export function useMinhaComissao(de: Date, ate: Date) {
     setLoading(true)
     const q = query(
       collection(db, 'ordens_servico'),
-      where('oficina_id',   '==', perfil.oficina_id),
-      where('mecanico_id',  '==', perfil.uid),
-      where('status',       '==', 'concluida'),
-      where('finalizadaAt', '>=', Timestamp.fromDate(de)),
-      where('finalizadaAt', '<=', Timestamp.fromDate(ate)),
-      orderBy('finalizadaAt', 'desc'),
+      where('oficina_id',  '==', perfil.oficina_id),
+      where('mecanico_id', '==', perfil.uid),
+      where('status',      '==', 'concluida'),
+      orderBy('createdAt', 'desc'),
     )
     const unsub = onSnapshot(q,
-      snap => { setOrdens(snap.docs.map(d => docToData<OrdemServico>(d))); setLoading(false) },
+      snap => { setTodas(snap.docs.map(d => docToData<OrdemServico>(d))); setLoading(false) },
       ()   => setLoading(false),
     )
     return () => unsub()
-  }, [perfil?.oficina_id, perfil?.uid, de.getTime(), ate.getTime()])
+  }, [perfil?.oficina_id, perfil?.uid])
+
+  // Filtra o periodo pela data de finalizacao (no codigo)
+  const ordens = todas.filter(os => {
+    const d = os.finalizadaAt
+    if (!d) return false
+    return d >= de && d <= ate
+  })
 
   const total_mao_obra = ordens.reduce((s, os) => s + (os.valor_mao_obra || 0), 0)
   const total_pecas    = ordens.reduce((s, os) => s + (os.valor_pecas || 0), 0)
