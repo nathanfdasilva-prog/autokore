@@ -45,7 +45,7 @@ export function useMinhaComissao(de: Date, ate: Date) {
       ()   => setLoading(false),
     )
     return () => unsub()
-  }, [perfil?.oficina_id, perfil?.uid, de.toISOString(), ate.toISOString()])
+  }, [perfil?.oficina_id, perfil?.uid, de.getTime(), ate.getTime()])
 
   const total_mao_obra = ordens.reduce((s, os) => s + (os.valor_mao_obra || 0), 0)
   const total_pecas    = ordens.reduce((s, os) => s + (os.valor_pecas || 0), 0)

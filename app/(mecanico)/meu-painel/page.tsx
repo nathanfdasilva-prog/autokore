@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, endOfDay } from 'date-fns'
 import { Wrench, DollarSign, Percent, TrendingUp, ChevronRight, ClipboardList } from 'lucide-react'
@@ -14,15 +14,16 @@ export default function MeuPainelPage() {
   const { perfil } = useAuth()
   const [periodo, setPeriodo] = useState<Periodo>('semana')
 
-  const hoje = new Date()
-  let de: Date, ate: Date
-  if (periodo === 'semana') {
-    de = startOfWeek(hoje, { weekStartsOn: 1 }); ate = endOfWeek(hoje, { weekStartsOn: 1 })
-  } else if (periodo === 'quinzena') {
-    de = subDays(hoje, 14); ate = endOfDay(hoje)
-  } else {
-    de = startOfMonth(hoje); ate = endOfMonth(hoje)
-  }
+  const { de, ate } = useMemo(() => {
+    const hoje = new Date()
+    if (periodo === 'semana') {
+      return { de: startOfWeek(hoje, { weekStartsOn: 1 }), ate: endOfWeek(hoje, { weekStartsOn: 1 }) }
+    } else if (periodo === 'quinzena') {
+      return { de: subDays(hoje, 14), ate: endOfDay(hoje) }
+    } else {
+      return { de: startOfMonth(hoje), ate: endOfMonth(hoje) }
+    }
+  }, [periodo])
 
   const { ordens, resumo, loading, pctMaoObra, pctPeca } = useMinhaComissao(de, ate)
 
