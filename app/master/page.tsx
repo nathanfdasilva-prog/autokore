@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/context/AuthContext'
 import { collection, getDocs, updateDoc, doc, db } from '@/lib/firebase/firestore'
-import { Building2, Shield, ShieldOff, ClipboardList, LogOut, RefreshCw, Users } from 'lucide-react'
+import { Building2, Shield, ShieldOff, ClipboardList, LogOut, RefreshCw, Users, ArrowRightLeft, X } from 'lucide-react'
 import { logout } from '@/lib/firebase/auth'
 import { format } from 'date-fns'
 
@@ -37,15 +37,30 @@ interface Lead {
   createdAt: any
 }
 
+interface UsuarioMaster {
+  uid: string
+  nome: string
+  email: string
+  role: string
+  oficina_id: string
+  ativo: boolean
+}
+
 export default function MasterPage() {
   const { perfil, loading } = useAuth()
   const router = useRouter()
   const [oficinas, setOficinas] = useState<Oficina[]>([])
   const [stats, setStats] = useState<Record<string, Stats>>({})
   const [leads, setLeads] = useState<Lead[]>([])
+  const [usuarios, setUsuarios] = useState<UsuarioMaster[]>([])
   const [loadingDados, setLoadingDados] = useState(true)
   const [acao, setAcao] = useState<string | null>(null)
-  const [aba, setAba] = useState<'oficinas' | 'leads'>('oficinas')
+  const [aba, setAba] = useState<'oficinas' | 'leads' | 'usuarios'>('oficinas')
+
+  // Modal de mover usuário
+  const [movendo, setMovendo] = useState<UsuarioMaster | null>(null)
+  const [oficinaDestino, setOficinaDestino] = useState('')
+  const [salvandoMove, setSalvandoMove] = useState(false)
 
   useEffect(() => {
     if (loading) return
@@ -70,6 +85,9 @@ export default function MasterPage() {
         getDocs(collection(db, 'clientes')),
         getDocs(collection(db, 'users')),
       ])
+
+      setUsuarios(usSnap.docs.map(d => ({ uid: d.id, ...d.data() } as UsuarioMaster)))
+
       const statsMap: Record<string, Stats> = {}
       lista.forEach(of => {
         statsMap[of.id] = {
@@ -100,6 +118,27 @@ export default function MasterPage() {
     } finally {
       setAcao(null)
     }
+  }
+
+  async function confirmarMover() {
+    if (!movendo || !oficinaDestino) return
+    setSalvandoMove(true)
+    try {
+      await updateDoc(doc(db, 'users', movendo.uid), {
+        oficina_id: oficinaDestino,
+      })
+      setMovendo(null)
+      setOficinaDestino('')
+      await carregarDados()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSalvandoMove(false)
+    }
+  }
+
+  function nomeOficina(id: string) {
+    return oficinas.find(o => o.id === id)?.nome ?? '(sem oficina)'
   }
 
   async function handleLogout() {
@@ -154,22 +193,26 @@ export default function MasterPage() {
             <p className="text-xs text-gray-400">Bloqueadas</p>
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <Users size={20} className="text-purple-400 mb-2" />
+            <p className="text-2xl font-bold">{usuarios.length}</p>
+            <p className="text-xs text-gray-400">Usuários</p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <ClipboardList size={20} className="text-orange-400 mb-2" />
             <p className="text-2xl font-bold">{Object.values(stats).reduce((s, v) => s + v.os, 0)}</p>
             <p className="text-xs text-gray-400">Total OS</p>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <Users size={20} className="text-purple-400 mb-2" />
-            <p className="text-2xl font-bold">{leads.length}</p>
-            <p className="text-xs text-gray-400">Leads</p>
-          </div>
         </div>
 
         {/* Abas */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
           <button onClick={() => setAba('oficinas')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${aba === 'oficinas' ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
             Oficinas
+          </button>
+          <button onClick={() => setAba('usuarios')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${aba === 'usuarios' ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+            Usuários ({usuarios.length})
           </button>
           <button onClick={() => setAba('leads')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${aba === 'leads' ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
@@ -197,6 +240,7 @@ export default function MasterPage() {
                         </span>
                       </div>
                       <p className="text-xs text-gray-400 mb-2">{oficina.email_dono}</p>
+                      <p className="text-[10px] text-gray-600 mb-2 font-mono">ID: {oficina.id}</p>
                       <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-3">
                         {oficina.cidade && <span>{oficina.cidade}/{oficina.estado}</span>}
                         {oficina.telefone && <span>{oficina.telefone}</span>}
@@ -231,6 +275,34 @@ export default function MasterPage() {
               ))}
             </div>
           )
+        ) : aba === 'usuarios' ? (
+          usuarios.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">Nenhum usuário cadastrado.</div>
+          ) : (
+            <div className="space-y-3">
+              {usuarios.map(u => (
+                <div key={u.uid} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-white">{u.nome}</p>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-orange-900 text-orange-300' : 'bg-blue-900 text-blue-300'}`}>
+                        {u.role === 'admin' ? 'ADMIN' : 'MECÂNICO'}
+                      </span>
+                      {u.email === MASTER_EMAIL && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-900 text-purple-300">MASTER</span>}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">{u.email}</p>
+                    <p className="text-xs text-gray-600 mt-0.5">Oficina: <span className="text-gray-400">{nomeOficina(u.oficina_id)}</span></p>
+                  </div>
+                  <button
+                    onClick={() => { setMovendo(u); setOficinaDestino('') }}
+                    className="flex items-center gap-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg font-medium transition flex-shrink-0">
+                    <ArrowRightLeft size={13} />
+                    Mover
+                  </button>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
           leads.length === 0 ? (
             <div className="text-center py-16 text-gray-500">Nenhum lead ainda.</div>
@@ -255,6 +327,42 @@ export default function MasterPage() {
           )
         )}
       </div>
+
+      {/* Modal mover usuário */}
+      {movendo && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-white">Mover usuário</h2>
+              <button onClick={() => setMovendo(null)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-3 mb-4">
+              <p className="text-sm font-semibold text-white">{movendo.nome}</p>
+              <p className="text-xs text-gray-400">{movendo.email}</p>
+              <p className="text-xs text-gray-500 mt-1">Oficina atual: {nomeOficina(movendo.oficina_id)}</p>
+            </div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Mover para a oficina:</label>
+            <select value={oficinaDestino} onChange={e => setOficinaDestino(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-orange-500 mb-4">
+              <option value="">Selecione...</option>
+              {oficinas.map(o => (
+                <option key={o.id} value={o.id} disabled={o.id === movendo.oficina_id}>
+                  {o.nome} {o.id === movendo.oficina_id ? '(atual)' : ''}
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-3">
+              <button onClick={() => setMovendo(null)} className="flex-1 py-2 text-sm border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition">
+                Cancelar
+              </button>
+              <button onClick={confirmarMover} disabled={!oficinaDestino || salvandoMove}
+                className="flex-1 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition disabled:opacity-50">
+                {salvandoMove ? 'Movendo...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
