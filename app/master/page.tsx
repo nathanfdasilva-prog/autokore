@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/context/AuthContext'
-import { collection, getDocs, updateDoc, doc, db } from '@/lib/firebase/firestore'
-import { Building2, Shield, ShieldOff, ClipboardList, LogOut, RefreshCw, Users, ArrowRightLeft, X } from 'lucide-react'
+import { collection, getDocs, updateDoc, doc, deleteDoc, db } from '@/lib/firebase/firestore'
+import { Building2, Shield, ShieldOff, ClipboardList, LogOut, RefreshCw, Users, ArrowRightLeft, X, Archive, Trash2, Inbox } from 'lucide-react'
 import { logout } from '@/lib/firebase/auth'
 import { format } from 'date-fns'
 
@@ -34,6 +34,7 @@ interface Lead {
   nome: string
   whatsapp: string
   origem: string
+  arquivado?: boolean
   createdAt: any
 }
 
@@ -61,6 +62,11 @@ export default function MasterPage() {
   const [movendo, setMovendo] = useState<UsuarioMaster | null>(null)
   const [oficinaDestino, setOficinaDestino] = useState('')
   const [salvandoMove, setSalvandoMove] = useState(false)
+
+  // Leads: arquivados / excluir
+  const [verArquivados, setVerArquivados] = useState(false)
+  const [excluindoLead, setExcluindoLead] = useState<Lead | null>(null)
+  const [acaoLead, setAcaoLead] = useState<string | null>(null)
 
   useEffect(() => {
     if (loading) return
@@ -135,6 +141,26 @@ export default function MasterPage() {
     } finally {
       setSalvandoMove(false)
     }
+  }
+
+  async function arquivarLead(lead: Lead) {
+    setAcaoLead(lead.id)
+    try {
+      await updateDoc(doc(db, 'leads', lead.id), { arquivado: !lead.arquivado })
+      await carregarDados()
+    } catch (e) { console.error(e) }
+    finally { setAcaoLead(null) }
+  }
+
+  async function confirmarExcluirLead() {
+    if (!excluindoLead) return
+    setAcaoLead(excluindoLead.id)
+    try {
+      await deleteDoc(doc(db, 'leads', excluindoLead.id))
+      setExcluindoLead(null)
+      await carregarDados()
+    } catch (e) { console.error(e) }
+    finally { setAcaoLead(null) }
   }
 
   function nomeOficina(id: string) {
@@ -216,7 +242,7 @@ export default function MasterPage() {
           </button>
           <button onClick={() => setAba('leads')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${aba === 'leads' ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
-            Leads ({leads.length})
+            Leads ({leads.filter(l => !l.arquivado).length})
           </button>
         </div>
 
@@ -304,27 +330,60 @@ export default function MasterPage() {
             </div>
           )
         ) : (
-          leads.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">Nenhum lead ainda.</div>
-          ) : (
-            <div className="space-y-3">
-              {leads.map(lead => (
-                <div key={lead.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-white">{lead.nome}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">📱 {lead.whatsapp}</p>
-                    <p className="text-xs text-gray-600 mt-0.5">
-                      {lead.createdAt?.seconds ? format(new Date(lead.createdAt.seconds * 1000), 'dd/MM/yyyy HH:mm') : '—'}
-                    </p>
-                  </div>
-                  <a href={`https://wa.me/55${lead.whatsapp}`} target="_blank" rel="noopener noreferrer"
-                    className="text-xs bg-green-800 hover:bg-green-700 text-green-200 px-3 py-1.5 rounded-lg font-medium transition flex-shrink-0">
-                    💬 WhatsApp
-                  </a>
+          (() => {
+            const leadsVisiveis = leads.filter(l => verArquivados ? l.arquivado : !l.arquivado)
+            const qtdArquivados = leads.filter(l => l.arquivado).length
+            return (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <button onClick={() => setVerArquivados(false)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${!verArquivados ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+                    <Inbox size={13} /> Ativos ({leads.length - qtdArquivados})
+                  </button>
+                  <button onClick={() => setVerArquivados(true)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${verArquivados ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+                    <Archive size={13} /> Arquivados ({qtdArquivados})
+                  </button>
                 </div>
-              ))}
-            </div>
-          )
+
+                {leadsVisiveis.length === 0 ? (
+                  <div className="text-center py-16 text-gray-500">
+                    {verArquivados ? 'Nenhum lead arquivado.' : 'Nenhum lead ativo.'}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {leadsVisiveis.map(lead => (
+                      <div key={lead.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-white">{lead.nome}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">📱 {lead.whatsapp}</p>
+                          <p className="text-xs text-gray-600 mt-0.5">
+                            {lead.createdAt?.seconds ? format(new Date(lead.createdAt.seconds * 1000), 'dd/MM/yyyy HH:mm') : '—'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <a href={`https://wa.me/55${lead.whatsapp}`} target="_blank" rel="noopener noreferrer"
+                            className="text-xs bg-green-800 hover:bg-green-700 text-green-200 px-3 py-1.5 rounded-lg font-medium transition">
+                            💬 WhatsApp
+                          </a>
+                          <button onClick={() => arquivarLead(lead)} disabled={acaoLead === lead.id}
+                            title={lead.arquivado ? 'Desarquivar' : 'Arquivar'}
+                            className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 flex items-center justify-center transition">
+                            <Archive size={14} />
+                          </button>
+                          <button onClick={() => setExcluindoLead(lead)} disabled={acaoLead === lead.id}
+                            title="Excluir"
+                            className="w-8 h-8 rounded-lg bg-red-900/50 hover:bg-red-800 text-red-300 flex items-center justify-center transition">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )
+          })()
         )}
       </div>
 
@@ -358,6 +417,35 @@ export default function MasterPage() {
               <button onClick={confirmarMover} disabled={!oficinaDestino || salvandoMove}
                 className="flex-1 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition disabled:opacity-50">
                 {salvandoMove ? 'Movendo...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmar excluir lead */}
+      {excluindoLead && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-900/50 flex items-center justify-center flex-shrink-0">
+                <Trash2 size={18} className="text-red-300" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">Excluir lead</h2>
+                <p className="text-xs text-gray-400">Esta ação não pode ser desfeita.</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300 mb-5">
+              Excluir o lead <strong className="text-white">{excluindoLead.nome}</strong> de vez?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setExcluindoLead(null)} className="flex-1 py-2 text-sm border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition">
+                Cancelar
+              </button>
+              <button onClick={confirmarExcluirLead} disabled={acaoLead === excluindoLead.id}
+                className="flex-1 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition disabled:opacity-50">
+                {acaoLead === excluindoLead.id ? 'Excluindo...' : 'Sim, excluir'}
               </button>
             </div>
           </div>
