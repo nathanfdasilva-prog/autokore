@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, subMonths, eachDayOfInterval, isSameDay, subDays } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, subMonths, eachDayOfInterval, isSameDay, subDays, startOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { DollarSign, TrendingUp, FileText } from 'lucide-react'
 import {
@@ -10,11 +10,13 @@ import {
 import { docToData } from '@/lib/firebase/firestore'
 import { useAuth } from '@/lib/context/AuthContext'
 import KPICard from '@/components/dashboard/KPICard'
-import FaturamentoChart from '@/components/dashboard/FaturamentoChart'
+import GraficoFaturamento from '@/components/dashboard/GraficoFaturamento'
+import GraficoPagamentos from '@/components/dashboard/GraficoPagamentos'
 import BloqueioPlano from '@/components/plano/BloqueioPlano'
 import type { OrdemServico } from '@/lib/types'
 
 type Periodo = 'hoje' | '7dias' | 'mes' | 'mes_anterior' | 'personalizado'
+type Agrupar = 'dia' | 'semana'
 
 export default function FaturamentoPage() {
   const { perfil, temAcesso } = useAuth()
@@ -22,6 +24,7 @@ export default function FaturamentoPage() {
   if (!temAcesso('faturamento')) return <BloqueioPlano recurso="Faturamento" planoMin="pro" />
 
   const [periodo,    setPeriodo]    = useState<Periodo>('mes')
+  const [agrupar,    setAgrupar]    = useState<Agrupar>('dia')
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [dataFim,    setDataFim]    = useState(format(endOfMonth(new Date()),   'yyyy-MM-dd'))
   const [ordens,     setOrdens]     = useState<OrdemServico[]>([])
@@ -79,11 +82,30 @@ export default function FaturamentoPage() {
 
   const de  = new Date(dataInicio + 'T00:00:00')
   const ate = new Date(dataFim    + 'T00:00:00')
-  const diasIntervalo = eachDayOfInterval({ start: de, end: ate }).slice(-30)
-  const dadosGrafico  = diasIntervalo.map(dia => ({
-    data:  format(dia, 'dd/MM'),
-    valor: ordens.filter(os => os.finalizadaAt && isSameDay(os.finalizadaAt, dia)).reduce((s, os) => s + os.valor_total, 0),
-  }))
+
+  // Monta os dados do gráfico agrupando por dia OU por semana
+  let dadosGrafico: { data: string; valor: number }[]
+  if (agrupar === 'semana') {
+    const mapaSemanas = new Map<string, { rotulo: string; valor: number; ordem: number }>()
+    ordens.forEach(os => {
+      if (!os.finalizadaAt) return
+      const ini = startOfWeek(os.finalizadaAt, { weekStartsOn: 1 })
+      const chave = format(ini, 'yyyy-MM-dd')
+      const rotulo = format(ini, "dd/MM")
+      const atual = mapaSemanas.get(chave)
+      if (atual) atual.valor += os.valor_total
+      else mapaSemanas.set(chave, { rotulo, valor: os.valor_total, ordem: ini.getTime() })
+    })
+    dadosGrafico = Array.from(mapaSemanas.values())
+      .sort((a, b) => a.ordem - b.ordem)
+      .map(s => ({ data: `Sem ${s.rotulo}`, valor: s.valor }))
+  } else {
+    const diasIntervalo = eachDayOfInterval({ start: de, end: ate }).slice(-31)
+    dadosGrafico = diasIntervalo.map(dia => ({
+      data:  format(dia, 'dd/MM'),
+      valor: ordens.filter(os => os.finalizadaAt && isSameDay(os.finalizadaAt, dia)).reduce((s, os) => s + os.valor_total, 0),
+    }))
+  }
 
   const pagamentos = ordens.reduce((acc, os) => {
     const forma = os.forma_pagamento ?? 'outros'
@@ -92,9 +114,14 @@ export default function FaturamentoPage() {
   }, {} as Record<string, number>)
 
   const FORMA_LABELS: Record<string, string> = {
-    pix: '💸 PIX', dinheiro: '💵 Dinheiro',
-    cartao_credito: '💳 Crédito', cartao_debito: '💳 Débito', outros: '📋 Outros',
+    pix: 'PIX', dinheiro: 'Dinheiro',
+    cartao_credito: 'Cartão crédito', cartao_debito: 'Cartão débito', outros: 'Outros',
   }
+
+  const dadosPagamento = Object.entries(pagamentos).map(([forma, valor]) => ({
+    nome:  FORMA_LABELS[forma] ?? forma,
+    valor,
+  }))
 
   return (
     <div>
@@ -144,31 +171,27 @@ export default function FaturamentoPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
             <div className="card lg:col-span-2">
-              <h2 className="text-sm font-semibold text-gray-700 mb-4">Faturamento por dia</h2>
-              {dadosGrafico.length > 0 ? <FaturamentoChart dados={dadosGrafico} altura={140} /> : <p className="text-sm text-gray-400 text-center py-8">Nenhuma OS neste período.</p>}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-gray-700">Faturamento</h2>
+                <div className="flex bg-gray-100 rounded-lg p-0.5">
+                  {([
+                    { val: 'dia',    label: 'Por dia' },
+                    { val: 'semana', label: 'Por semana' },
+                  ] as const).map(a => (
+                    <button key={a.val} onClick={() => setAgrupar(a.val)}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                        agrupar === a.val ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                      }`}>
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <GraficoFaturamento dados={dadosGrafico} altura={240} />
             </div>
             <div className="card">
               <h2 className="text-sm font-semibold text-gray-700 mb-4">Formas de pagamento</h2>
-              {Object.keys(pagamentos).length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">Sem dados</p>
-              ) : (
-                <div className="space-y-3">
-                  {Object.entries(pagamentos).sort((a, b) => b[1] - a[1]).map(([forma, valor]) => {
-                    const pct = totalFaturado > 0 ? (valor / totalFaturado) * 100 : 0
-                    return (
-                      <div key={forma}>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-gray-600">{FORMA_LABELS[forma] ?? forma}</span>
-                          <span className="font-semibold text-gray-800">R${valor.toFixed(2)} <span className="text-gray-400 font-normal">({pct.toFixed(0)}%)</span></span>
-                        </div>
-                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-orange-400 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+              <GraficoPagamentos dados={dadosPagamento} altura={200} />
             </div>
           </div>
 
