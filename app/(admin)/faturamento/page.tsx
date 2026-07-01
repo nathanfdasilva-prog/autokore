@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale'
 import { DollarSign, TrendingUp, FileText } from 'lucide-react'
 import {
   collection, query, where, orderBy,
-  onSnapshot, db, Timestamp,
+  onSnapshot, db,
 } from '@/lib/firebase/firestore'
 import { docToData } from '@/lib/firebase/firestore'
 import { useAuth } from '@/lib/context/AuthContext'
@@ -27,7 +27,7 @@ export default function FaturamentoPage() {
   const [agrupar,    setAgrupar]    = useState<Agrupar>('dia')
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [dataFim,    setDataFim]    = useState(format(endOfMonth(new Date()),   'yyyy-MM-dd'))
-  const [ordens,     setOrdens]     = useState<OrdemServico[]>([])
+  const [todas,      setTodas]      = useState<OrdemServico[]>([])
   const [loading,    setLoading]    = useState(true)
 
   useEffect(() => {
@@ -48,6 +48,7 @@ export default function FaturamentoPage() {
     }
   }, [periodo])
 
+  // Busca todas as OS concluídas da oficina (sem filtrar data no Firestore)
   useEffect(() => {
     if (!perfil?.oficina_id) {
       setLoading(false)
@@ -55,33 +56,36 @@ export default function FaturamentoPage() {
     }
     setLoading(true)
 
-    const de  = startOfDay(new Date(dataInicio + 'T00:00:00'))
-    const ate = endOfDay(new Date(dataFim     + 'T00:00:00'))
-
     const q = query(
       collection(db, 'ordens_servico'),
-      where('oficina_id',   '==', perfil.oficina_id),
-      where('status',       '==', 'concluida'),
-      where('finalizadaAt', '>=', Timestamp.fromDate(de)),
-      where('finalizadaAt', '<=', Timestamp.fromDate(ate)),
-      orderBy('finalizadaAt', 'desc'),
+      where('oficina_id', '==', perfil.oficina_id),
+      where('status',     '==', 'concluida'),
+      orderBy('createdAt', 'desc'),
     )
 
     const unsub = onSnapshot(q, snap => {
-      setOrdens(snap.docs.map(d => docToData<OrdemServico>(d)))
+      setTodas(snap.docs.map(d => docToData<OrdemServico>(d)))
       setLoading(false)
     }, () => setLoading(false))
 
     return () => unsub()
-  }, [perfil?.oficina_id, dataInicio, dataFim])
+  }, [perfil?.oficina_id])
+
+  // Filtra o período no código (pela data de finalização)
+  const de  = startOfDay(new Date(dataInicio + 'T00:00:00'))
+  const ate = endOfDay(new Date(dataFim     + 'T00:00:00'))
+  const ordens = todas
+    .filter(os => {
+      const d = os.finalizadaAt
+      if (!d) return false
+      return d >= de && d <= ate
+    })
+    .sort((a, b) => (b.finalizadaAt?.getTime() ?? 0) - (a.finalizadaAt?.getTime() ?? 0))
 
   const totalFaturado = ordens.reduce((s, os) => s + os.valor_total, 0)
   const totalPecas    = ordens.reduce((s, os) => s + os.valor_pecas, 0)
   const totalMaoObra  = ordens.reduce((s, os) => s + os.valor_mao_obra, 0)
   const ticketMedio   = ordens.length > 0 ? totalFaturado / ordens.length : 0
-
-  const de  = new Date(dataInicio + 'T00:00:00')
-  const ate = new Date(dataFim    + 'T00:00:00')
 
   // Monta os dados do gráfico agrupando por dia OU por semana
   let dadosGrafico: { data: string; valor: number }[]
