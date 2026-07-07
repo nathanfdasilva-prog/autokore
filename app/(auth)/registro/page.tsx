@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { User, Building, Star, CheckCircle, ChevronRight } from 'lucide-react'
@@ -9,6 +9,21 @@ import { auth, db } from '@/lib/firebase/config'
 import type { Role, Plano } from '@/lib/types'
 
 type Etapa = 'conta' | 'oficina' | 'plano' | 'sucesso'
+
+// Mapa de etapa -> número do passo, só pra facilitar leitura no GA4
+const ETAPA_PARA_STEP: Record<Etapa, number> = {
+  conta: 1,
+  oficina: 2,
+  plano: 3,
+  sucesso: 4,
+}
+
+// Helper simples pra disparar evento no GA4 sem quebrar se o gtag não tiver carregado ainda
+function trackEvent(eventName: string, params: Record<string, any> = {}) {
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    ;(window as any).gtag('event', eventName, params)
+  }
+}
 
 const PLANOS: { id: Plano; nome: string; preco: string; periodo: string; destaque: boolean; recursos: string[]; limite: string }[] = [
   {
@@ -37,6 +52,22 @@ export default function RegistroPage() {
     tipo: 'carros_e_motos' as 'carros' | 'motos' | 'carros_e_motos',
   })
   const [planoSelecionado, setPlano] = useState<Plano>('basico')
+
+  // 🔎 TRACKING GA4: dispara sempre que o usuário chega numa nova etapa do cadastro.
+  useEffect(() => {
+    if (etapa === 'sucesso') {
+      trackEvent('signup_completed', {
+        step: ETAPA_PARA_STEP[etapa],
+        step_name: etapa,
+      })
+    } else {
+      trackEvent('signup_step_view', {
+        step: ETAPA_PARA_STEP[etapa],
+        step_name: etapa,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etapa])
 
   async function handleConta() {
     setErro('')
