@@ -1,5 +1,5 @@
 ﻿'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   collection, query, where, orderBy,
   onSnapshot, addDoc, updateDoc, doc,
@@ -14,6 +14,10 @@ export function useAgendamentos(de: Date, ate: Date) {
   const { perfil } = useAuth()
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [loading, setLoading] = useState(true)
+
+  const deTime = de.getTime()
+  const ateTime = ate.getTime()
+
   useEffect(() => {
     if (!perfil?.oficina_id) return
     const q = query(
@@ -28,18 +32,21 @@ export function useAgendamentos(de: Date, ate: Date) {
       setLoading(false)
     })
     return () => unsub()
-  }, [perfil?.oficina_id, de.toISOString(), ate.toISOString()])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perfil?.oficina_id, deTime, ateTime])
+
   return { agendamentos, loading }
 }
 
 export function useAgendamentosHoje() {
-  const hoje = new Date()
+  const hoje = useMemo(() => new Date(), [])
   return useAgendamentos(hoje, hoje)
 }
 
 export function useAgendamentosSemana(referencia: Date) {
-  const inicio = startOfWeek(referencia, { weekStartsOn: 1 })
-  const fim = endOfWeek(referencia, { weekStartsOn: 1 })
+  const refTime = referencia.getTime()
+  const inicio = useMemo(() => startOfWeek(referencia, { weekStartsOn: 1 }), [refTime])
+  const fim = useMemo(() => endOfWeek(referencia, { weekStartsOn: 1 }), [refTime])
   return useAgendamentos(inicio, fim)
 }
 
