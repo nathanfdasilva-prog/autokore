@@ -40,22 +40,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser)
-        const dados = await buscarPerfil(firebaseUser)
-        setPerfil(dados)
-        if (dados?.oficina_id) {
-          const snap = await getDoc(doc(db, 'oficinas', dados.oficina_id))
-          if (snap.exists()) {
-            setOficina({ id: snap.id, ...snap.data() } as Oficina)
+      try {
+        if (firebaseUser) {
+          setUser(firebaseUser)
+          const dados = await buscarPerfil(firebaseUser)
+          setPerfil(dados)
+          if (dados?.oficina_id) {
+            const snap = await getDoc(doc(db, 'oficinas', dados.oficina_id))
+            if (snap.exists()) {
+              setOficina({ id: snap.id, ...snap.data() } as Oficina)
+            }
           }
+        } else {
+          setUser(null)
+          setPerfil(null)
+          setOficina(null)
         }
-      } else {
-        setUser(null)
-        setPerfil(null)
-        setOficina(null)
+      } catch (erro) {
+        console.error('AuthContext: erro ao carregar perfil/oficina:', erro)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
     return () => unsubscribe()
   }, [])
@@ -63,27 +68,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin    = perfil?.role === 'admin'
   const isMecanico = perfil?.role === 'mecanico' || isAdmin
 
-  // Plano atual — beta libera tudo
   const plano  = (oficina?.plano ?? 'beta') as Plano | 'beta'
   const isBeta = plano === 'beta' || !oficina?.assinatura_ativa
 
-  // Controle de acesso por recurso
   function temAcesso(recurso: 'estoque' | 'faturamento' | 'desempenho' | 'avaliacoes' | 'orcamentos' | 'rede'): boolean {
-    // Beta libera tudo
     if (isBeta) return true
 
-    // Plano básico
     if (plano === 'basico') {
       const bloqueados = ['faturamento', 'desempenho', 'avaliacoes', 'orcamentos', 'rede']
       return !bloqueados.includes(recurso)
     }
 
-    // Plano pro
     if (plano === 'pro') {
       return recurso !== 'rede'
     }
 
-    // Premium — tudo liberado
     return true
   }
 
