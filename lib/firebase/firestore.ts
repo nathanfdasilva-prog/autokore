@@ -1,5 +1,5 @@
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc,
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc,
   deleteDoc, query, where, orderBy, limit, onSnapshot,
   serverTimestamp, runTransaction, increment,
   DocumentData, Timestamp, FieldValue,
@@ -30,6 +30,6 @@ export function docToData<T>(snap: DocumentData): T {
 export {
   serverTimestamp, increment, runTransaction, FieldValue,
   collection, doc, query, where, orderBy,
-  limit, onSnapshot, addDoc, updateDoc,
+  limit, onSnapshot, addDoc, updateDoc, setDoc,
   getDocs, getDoc, deleteDoc, Timestamp, db
 }
