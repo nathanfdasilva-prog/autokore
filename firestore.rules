@@ -69,5 +69,11 @@ service cloud.firestore {
       allow update: if isAuth() && sameOf(resource.data.oficina_id);
       allow delete: if isAdminOf(resource.data.oficina_id);
     }
+    match /convites/{email} {
+      allow read:   if isMaster() || (isAuth() && (sameOf(resource.data.oficina_id) || request.auth.token.email.lower() == email));
+      allow create: if isMaster() || (isAuth() && isAdminOf(request.resource.data.oficina_id));
+      allow update: if isMaster() || (isAuth() && isAdminOf(resource.data.oficina_id));
+      allow delete: if isMaster() || (isAuth() && isAdminOf(resource.data.oficina_id));
+    }
   }
 }
