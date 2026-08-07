@@ -25,12 +25,13 @@ async function criarClienteAsaas(dados: {
 
 // ---- Criar assinatura no Asaas ----
 async function criarAssinatura(dados: {
-  customer:     string
-  billingType:  'CREDIT_CARD' | 'PIX' | 'BOLETO'
-  value:        number
-  nextDueDate:  string
-  cycle:        'MONTHLY'
-  description:  string
+  customer:           string
+  billingType:        'CREDIT_CARD' | 'PIX' | 'BOLETO'
+  value:              number
+  nextDueDate:        string
+  cycle:              'MONTHLY'
+  description:        string
+  externalReference?: string
 }) {
   const res = await fetch(`${ASAAS_URL}/subscriptions`, {
     method:  'POST',

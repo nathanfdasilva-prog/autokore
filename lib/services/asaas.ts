@@ -33,9 +33,10 @@ export async function criarClienteAsaas(dados: {
 }
 
 export async function criarAssinatura(dados: {
-  customer:    string
-  plano:       keyof typeof PLANOS_ASAAS
-  billingType: 'PIX' | 'CREDIT_CARD' | 'BOLETO'
+  customer:           string
+  plano:              keyof typeof PLANOS_ASAAS
+  billingType:        'PIX' | 'CREDIT_CARD' | 'BOLETO'
+  externalReference?: string
 }) {
   const plano = PLANOS_ASAAS[dados.plano]
   const hoje  = new Date()
@@ -45,13 +46,14 @@ export async function criarAssinatura(dados: {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      action:      'criar_assinatura',
-      customer:    dados.customer,
-      billingType: dados.billingType,
-      value:       plano.valor,
+      action:             'criar_assinatura',
+      customer:           dados.customer,
+      billingType:        dados.billingType,
+      value:              plano.valor,
       nextDueDate,
-      cycle:       'MONTHLY',
-      description: plano.descricao,
+      cycle:              'MONTHLY',
+      description:        plano.descricao,
+      externalReference:  dados.externalReference,
     }),
   })
   return res.json()
