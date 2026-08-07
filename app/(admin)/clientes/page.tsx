@@ -215,7 +215,7 @@ export default function ClientesPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nome *</label>
-                <input value={formEditar.nome} onChange={e => setFormEditar(f => ({ ...f, nome: e.target.value }))} className="input-base" placeholder="Joao Silva" />
+                <input value={formEditar.nome} onChange={e => setFormEditar(f => ({ ...f, nome: e.target.value }))} className="input-base" placeholder="Luiz Silva" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp *</label>
@@ -223,7 +223,7 @@ export default function ClientesPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">E-mail</label>
-                <input type="email" value={formEditar.email} onChange={e => setFormEditar(f => ({ ...f, email: e.target.value }))} className="input-base" placeholder="joao@email.com" />
+                <input type="email" value={formEditar.email} onChange={e => setFormEditar(f => ({ ...f, email: e.target.value }))} className="input-base" placeholder="luiz@email.com" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">CPF</label>
@@ -252,7 +252,7 @@ export default function ClientesPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nome *</label>
-                <input value={formCli.nome} onChange={e => setFormCli(f => ({ ...f, nome: e.target.value }))} className="input-base" placeholder="Joao Silva" />
+                <input value={formCli.nome} onChange={e => setFormCli(f => ({ ...f, nome: e.target.value }))} className="input-base" placeholder="Luiz Silva" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp *</label>
@@ -260,7 +260,7 @@ export default function ClientesPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">E-mail</label>
-                <input type="email" value={formCli.email} onChange={e => setFormCli(f => ({ ...f, email: e.target.value }))} className="input-base" placeholder="joao@email.com" />
+                <input type="email" value={formCli.email} onChange={e => setFormCli(f => ({ ...f, email: e.target.value }))} className="input-base" placeholder="luiz@email.com" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">CPF</label>

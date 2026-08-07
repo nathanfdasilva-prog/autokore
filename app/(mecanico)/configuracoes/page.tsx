@@ -239,11 +239,11 @@ export default function ConfiguracoesPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nome do mecânico</label>
-                <input value={nomeConvite} onChange={e => setNomeConvite(e.target.value)} className="input-base" placeholder="João da Silva" />
+                <input value={nomeConvite} onChange={e => setNomeConvite(e.target.value)} className="input-base" placeholder="Luiz da Silva" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">E-mail do mecânico</label>
-                <input type="email" value={emailConvite} onChange={e => setEmailConvite(e.target.value)} className="input-base" placeholder="joao@email.com" />
+                <input type="email" value={emailConvite} onChange={e => setEmailConvite(e.target.value)} className="input-base" placeholder="luiz@email.com" />
               </div>
               {msgConvite && (
                 <p className={`text-xs ${msgConvite.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>{msgConvite}</p>
