@@ -2,43 +2,27 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, Building, Star, CheckCircle, ChevronRight } from 'lucide-react'
+import { User, Building, CheckCircle, ChevronRight } from 'lucide-react'
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase/config'
-import type { Role, Plano } from '@/lib/types'
+import type { Role } from '@/lib/types'
 
-type Etapa = 'conta' | 'oficina' | 'plano' | 'sucesso'
+type Etapa = 'conta' | 'oficina' | 'sucesso'
 
-// Mapa de etapa -> número do passo, só pra facilitar leitura no GA4
 const ETAPA_PARA_STEP: Record<Etapa, number> = {
   conta: 1,
   oficina: 2,
-  plano: 3,
-  sucesso: 4,
+  sucesso: 3,
 }
 
-// Helper simples pra disparar evento no GA4 sem quebrar se o gtag não tiver carregado ainda
 function trackEvent(eventName: string, params: Record<string, any> = {}) {
   if (typeof window !== 'undefined' && (window as any).gtag) {
     ;(window as any).gtag('event', eventName, params)
   }
 }
 
-const PLANOS: { id: Plano; nome: string; preco: string; periodo: string; destaque: boolean; recursos: string[]; limite: string }[] = [
-  {
-    id: 'basico', nome: 'Grátis', preco: 'R$0', periodo: '', destaque: false, limite: '1 usuário',
-    recursos: ['Até 30 OS por mês','Clientes e veículos','Agendamentos básicos','Suporte por e-mail'],
-  },
-  {
-    id: 'pro', nome: 'Profissional', preco: 'R$97', periodo: '/mês', destaque: true, limite: 'Até 5 mecânicos',
-    recursos: ['OS ilimitadas','Estoque completo','Relatórios financeiros','NPS e avaliações','Suporte prioritário'],
-  },
-  {
-    id: 'premium', nome: 'Rede', preco: 'R$247', periodo: '/mês', destaque: false, limite: 'Mecânicos ilimitados',
-    recursos: ['Tudo do Pro','Múltiplas unidades','API e integrações','Relatórios avançados','Suporte 24h'],
-  },
-]
+const DIAS_TRIAL = 14
 
 export default function RegistroPage() {
   const router = useRouter()
@@ -51,20 +35,12 @@ export default function RegistroPage() {
     nome: '', whatsapp: '', cidade: '', estado: 'RO', cnpj: '',
     tipo: 'carros_e_motos' as 'carros' | 'motos' | 'carros_e_motos',
   })
-  const [planoSelecionado, setPlano] = useState<Plano>('basico')
 
-  // 🔎 TRACKING GA4: dispara sempre que o usuário chega numa nova etapa do cadastro.
   useEffect(() => {
     if (etapa === 'sucesso') {
-      trackEvent('signup_completed', {
-        step: ETAPA_PARA_STEP[etapa],
-        step_name: etapa,
-      })
+      trackEvent('signup_completed', { step: ETAPA_PARA_STEP[etapa], step_name: etapa })
     } else {
-      trackEvent('signup_step_view', {
-        step: ETAPA_PARA_STEP[etapa],
-        step_name: etapa,
-      })
+      trackEvent('signup_step_view', { step: ETAPA_PARA_STEP[etapa], step_name: etapa })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etapa])
@@ -78,26 +54,25 @@ export default function RegistroPage() {
     setEtapa('oficina')
   }
 
-  function handleOficina() {
+  async function handleFinalizar() {
     setErro('')
     if (!oficina.nome.trim())     return setErro('Nome da oficina é obrigatório.')
     if (!oficina.whatsapp.trim()) return setErro('WhatsApp é obrigatório.')
-    setEtapa('plano')
-  }
 
-  async function handleFinalizar() {
-    setErro('')
     setLoading(true)
     try {
       const cred = await createUserWithEmailAndPassword(auth, conta.email, conta.senha)
       await updateProfile(cred.user, { displayName: conta.nome })
 
+      const trialAte = new Date(Date.now() + DIAS_TRIAL * 24 * 60 * 60 * 1000)
+
       const oficinRef = doc(db, 'oficinas', `oficina_${cred.user.uid}`)
       await setDoc(oficinRef, {
         id: oficinRef.id, nome: oficina.nome, cnpj: oficina.cnpj,
         whatsapp: oficina.whatsapp, endereco: `${oficina.cidade} / ${oficina.estado}`,
-        plano: planoSelecionado, dono_uid: cred.user.uid, ativo: true,
-        assinatura_ativa: true, createdAt: serverTimestamp(),
+        plano: 'pro', dono_uid: cred.user.uid, ativo: true,
+        assinatura_ativa: false, trial_ate: trialAte,
+        createdAt: serverTimestamp(),
       })
 
       await setDoc(doc(db, 'users', cred.user.uid), {
@@ -119,7 +94,7 @@ export default function RegistroPage() {
     }
   }
 
-  const etapas: Etapa[] = ['conta', 'oficina', 'plano']
+  const etapas: Etapa[] = ['conta', 'oficina']
   const etapaIdx = etapas.indexOf(etapa)
 
   return (
@@ -127,12 +102,12 @@ export default function RegistroPage() {
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-orange-500">AutoKore<span className="text-gray-700 font-normal">.app</span></h1>
-          <p className="text-sm text-gray-500 mt-1">Crie sua conta gratuitamente — acesso completo na fase beta</p>
+          <p className="text-sm text-gray-500 mt-1">Crie sua conta gratuitamente — 14 dias de acesso completo</p>
         </div>
 
         {etapa !== 'sucesso' && (
           <div className="flex items-center justify-center gap-2 mb-6">
-            {(['conta', 'oficina', 'plano'] as const).map((e, i) => (
+            {(['conta', 'oficina'] as const).map((e, i) => (
               <div key={e} className="flex items-center gap-2">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
                   i < etapaIdx ? 'bg-green-500 border-green-500 text-white' :
@@ -141,9 +116,9 @@ export default function RegistroPage() {
                   {i < etapaIdx ? '✓' : i + 1}
                 </div>
                 <span className={`text-xs font-medium hidden sm:block ${i === etapaIdx ? 'text-gray-800' : 'text-gray-400'}`}>
-                  {e === 'conta' ? 'Sua conta' : e === 'oficina' ? 'Oficina' : 'Plano'}
+                  {e === 'conta' ? 'Sua conta' : 'Oficina'}
                 </span>
-                {i < 2 && <ChevronRight size={14} className="text-gray-300" />}
+                {i < 1 && <ChevronRight size={14} className="text-gray-300" />}
               </div>
             ))}
           </div>
@@ -235,50 +210,11 @@ export default function RegistroPage() {
                 </div>
               </div>
             </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mt-4 mb-1">
+              <p className="text-xs text-blue-700">🎉 <strong>14 dias grátis:</strong> acesso completo ao plano Profissional, sem cartão de crédito. Depois, R$97/mês pra continuar.</p>
+            </div>
             <div className="flex gap-3 mt-4">
               <button onClick={() => setEtapa('conta')} className="btn-ghost flex-1">← Voltar</button>
-              <button onClick={handleOficina} className="btn-primary flex-1">Continuar →</button>
-            </div>
-          </div>
-        )}
-
-        {etapa === 'plano' && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-base font-bold text-gray-800 mb-1 flex items-center gap-2">
-              <Star size={18} className="text-orange-500" />Escolha seu plano
-            </h2>
-            <p className="text-xs text-gray-500 mb-4">Durante o período beta todos os planos têm acesso completo gratuitamente.</p>
-            <div className="space-y-3 mb-5">
-              {PLANOS.map(plano => (
-                <button key={plano.id} type="button" onClick={() => setPlano(plano.id)}
-                  className={`w-full text-left rounded-xl border-2 p-4 transition-all ${planoSelecionado === plano.id ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${planoSelecionado === plano.id ? 'border-orange-500 bg-orange-500' : 'border-gray-300'}`}>
-                        {planoSelecionado === plano.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                      </div>
-                      <span className="font-bold text-gray-800">{plano.nome}</span>
-                      {plano.destaque && <span className="text-[10px] bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full">Popular</span>}
-                    </div>
-                    <div className="text-right">
-                      <span className="text-lg font-bold text-orange-500">{plano.preco}</span>
-                      <span className="text-xs text-gray-400">{plano.periodo}</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mb-2 ml-6">{plano.limite}</p>
-                  <div className="ml-6 grid grid-cols-2 gap-x-4 gap-y-0.5">
-                    {plano.recursos.map(r => (
-                      <p key={r} className="text-xs text-gray-600 flex items-center gap-1"><span className="text-green-500">✓</span>{r}</p>
-                    ))}
-                  </div>
-                </button>
-              ))}
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4">
-              <p className="text-xs text-blue-700">🎉 <strong>Fase Beta:</strong> Você terá acesso completo independente do plano escolhido. Você será avisado antes de qualquer cobrança.</p>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setEtapa('oficina')} className="btn-ghost flex-1">← Voltar</button>
               <button onClick={handleFinalizar} disabled={loading} className="btn-primary flex-1">
                 {loading ? 'Criando sua conta...' : 'Começar grátis 🚀'}
               </button>
@@ -294,7 +230,7 @@ export default function RegistroPage() {
             <h2 className="text-xl font-bold text-gray-800 mb-2">Sua oficina está pronta! 🎉</h2>
             <p className="text-sm text-gray-500 mb-1">Bem-vindo ao AutoKore, <strong>{conta.nome}</strong>!</p>
             <p className="text-sm text-gray-500 mb-6">
-              <strong>{oficina.nome}</strong> foi criada com acesso completo na fase beta.
+              <strong>{oficina.nome}</strong> foi criada com 14 dias de acesso completo.
             </p>
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6 text-left">
               <p className="text-xs font-semibold text-orange-700 mb-2">Próximos passos sugeridos:</p>
