@@ -172,7 +172,7 @@ export default function RegistroPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nome da oficina *</label>
-                <input value={oficina.nome} onChange={e => setOficina(o => ({ ...o, nome: e.target.value }))} placeholder="Oficina do João" className="input-base" />
+                <input value={oficina.nome} onChange={e => setOficina(o => ({ ...o, nome: e.target.value }))} placeholder="Oficina do Luiz" className="input-base" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp da oficina *</label>

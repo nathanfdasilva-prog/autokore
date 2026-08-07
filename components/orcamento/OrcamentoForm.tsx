@@ -167,7 +167,7 @@ export default function OrcamentoForm() {
           ))}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="block text-xs font-medium text-gray-600 mb-1">Nome do cliente *</label><input value={form.cliente_nome} onChange={e => setField('cliente_nome', e.target.value)} className="input-base" placeholder="João Silva" /></div>
+          <div><label className="block text-xs font-medium text-gray-600 mb-1">Nome do cliente *</label><input value={form.cliente_nome} onChange={e => setField('cliente_nome', e.target.value)} className="input-base" placeholder="Luiz Silva" /></div>
           <div><label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp</label><input value={form.cliente_whatsapp} onChange={e => setField('cliente_whatsapp', e.target.value)} className="input-base" placeholder="(69) 9 9999-9999" /></div>
           <div><label className="block text-xs font-medium text-gray-600 mb-1">Veículo *</label><input value={form.veiculo} onChange={e => setField('veiculo', e.target.value)} className="input-base" placeholder="VW Gol G5 2014" /></div>
           <div><label className="block text-xs font-medium text-gray-600 mb-1">Placa *</label><input value={form.placa} onChange={e => setField('placa', e.target.value.toUpperCase())} className="input-base uppercase font-mono" placeholder="ABC-1234" maxLength={8} /></div>

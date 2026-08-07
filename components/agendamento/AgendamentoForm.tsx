@@ -165,7 +165,7 @@ export default function AgendamentoForm({ onClose, dataInicial, agendamento }: A
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Nome do cliente <span className="text-red-500">*</span></label>
-              <input value={form.cliente_nome} onChange={e => setField('cliente_nome', e.target.value)} placeholder="João Silva" className="input-base" />
+              <input value={form.cliente_nome} onChange={e => setField('cliente_nome', e.target.value)} placeholder="Luiz  Silva" className="input-base" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp <span className="text-red-500">*</span></label>
