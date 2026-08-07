@@ -136,7 +136,7 @@ export default function RegistroPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Seu nome *</label>
-                <input value={conta.nome} onChange={e => setConta(c => ({ ...c, nome: e.target.value }))} placeholder="João Silva" className="input-base" />
+                <input value={conta.nome} onChange={e => setConta(c => ({ ...c, nome: e.target.value }))} placeholder="Luiz Silva" className="input-base" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">E-mail *</label>
