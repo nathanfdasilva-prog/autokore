@@ -140,7 +140,7 @@ export default function RegistroPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">E-mail *</label>
-                <input type="email" value={conta.email} onChange={e => setConta(c => ({ ...c, email: e.target.value }))} placeholder="joao@oficina.com" className="input-base" />
+                <input type="email" value={conta.email} onChange={e => setConta(c => ({ ...c, email: e.target.value }))} placeholder="luiz@oficina.com" className="input-base" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Senha *</label>

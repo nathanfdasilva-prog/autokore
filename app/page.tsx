@@ -62,7 +62,7 @@ export default function LandingPage() {
                   <div className="kpi"><div className="kpi-label">NPS</div><div className="kpi-val orange">94</div><div className="kpi-change">Excelente</div></div>
                 </div>
                 <div className="os-list">
-                  <div className="os-item"><div className="os-info"><span className="os-name">Joao Pereira</span><span className="os-car">Corolla 2022 - Troca de oleo</span></div><span className="os-badge badge-green">Concluido</span><span className="os-val">R$320</span></div>
+                  <div className="os-item"><div className="os-info"><span className="os-name">Luiz Pereira</span><span className="os-car">Corolla 2022 - Troca de oleo</span></div><span className="os-badge badge-green">Concluido</span><span className="os-val">R$320</span></div>
                   <div className="os-item"><div className="os-info"><span className="os-name">Maria Santos</span><span className="os-car">HB20 2021 - Revisao</span></div><span className="os-badge badge-yellow">Em andamento</span><span className="os-val">R$580</span></div>
                   <div className="os-item"><div className="os-info"><span className="os-name">Carlos Lima</span><span className="os-car">Onix 2023 - Freios</span></div><span className="os-badge badge-blue">Agendado</span><span className="os-val">R$450</span></div>
                 </div>
