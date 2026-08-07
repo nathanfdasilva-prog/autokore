@@ -99,8 +99,7 @@ export default function ConfiguracoesPage() {
       setMsgConvite(`✓ Convite registrado para ${emailConvite}! Peça para ele se cadastrar em autokore.com.br/registro usando este e-mail.`)
       setEmailConvite('')
       setNomeConvite('')
-    } catch (e: any) {
-      console.error('[convite] erro real:', e)
+    } catch {
       setMsgConvite('Erro ao enviar convite.')
     } finally {
       setEnviandoConv(false)
