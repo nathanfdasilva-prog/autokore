@@ -104,6 +104,10 @@ export async function baixarEstoque(params: {
       updatedAt:  serverTimestamp(),
     })
 
+    // Nota: serverTimestamp() é o valor correto e intencional pro Firestore preencher
+    // a data no servidor — ele não bate com o tipo `Date` do TypeScript por natureza
+    // (é um "marcador especial", convertido de volta pra Date na leitura via docToData).
+    // Por isso não usamos "satisfies" aqui, pra não gerar erro de tipo em algo que está certo.
     await addDoc(collection(db, 'movimentacoes_estoque'), {
       item_id:      item.produto_id,
       oficina_id,
@@ -113,6 +117,6 @@ export async function baixarEstoque(params: {
       usuario_id,
       usuario_nome,
       createdAt:    serverTimestamp(),
-    } satisfies Omit<MovimentacaoEstoque, 'id'>)
+    })
   }
 }

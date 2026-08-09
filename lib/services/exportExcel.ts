@@ -8,6 +8,9 @@ import type { OrdemServico, ItemEstoque, MovimentacaoEstoque, Agendamento } from
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
+type Celula = string | number
+type Linha  = Celula[]
+
 const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
@@ -17,7 +20,7 @@ const fmt = (d: Date | undefined) =>
 // ----------------------------------------------------------
 // Helper: gera e faz download do arquivo
 // ----------------------------------------------------------
-async function baixarXLSX(dados: object[][], nomePlanilha: string, nomeArquivo: string) {
+async function baixarXLSX(dados: Linha[], nomePlanilha: string, nomeArquivo: string) {
   // Importa SheetJS dinamicamente (já listado no package.json)
   const XLSX = await import('xlsx')
 
@@ -42,7 +45,7 @@ export async function exportarFaturamento(
   periodo:     string,
   oficina:     string,
 ) {
-  const cabecalho = [
+  const cabecalho: Linha[] = [
     ['AutoKore — Relatório de Faturamento'],
     [`Oficina: ${oficina}  |  Período: ${periodo}`],
     [`Gerado em: ${fmt(new Date())}`],
@@ -51,7 +54,7 @@ export async function exportarFaturamento(
      'Peças (R$)', 'Mão de obra (R$)', 'Total (R$)', 'Pagamento'],
   ]
 
-  const linhas = ordens.map(os => [
+  const linhas: Linha[] = ordens.map(os => [
     `#${String(os.numero).padStart(4, '0')}`,
     fmt(os.finalizadaAt ?? os.createdAt),
     os.cliente_nome,
@@ -68,7 +71,7 @@ export async function exportarFaturamento(
   const totalPecas  = ordens.reduce((s, o) => s + o.valor_pecas, 0)
   const totalMO     = ordens.reduce((s, o) => s + o.valor_mao_obra, 0)
   const totalGeral  = ordens.reduce((s, o) => s + o.valor_total, 0)
-  const rodape = [
+  const rodape: Linha[] = [
     [],
     ['', '', '', '', '', 'TOTAL', totalPecas, totalMO, totalGeral, ''],
     ['', '', '', '', '', 'Ticket médio', '', '',
@@ -90,7 +93,7 @@ export async function exportarEstoque(
   itens:    ItemEstoque[],
   oficina:  string,
 ) {
-  const cabecalho = [
+  const cabecalho: Linha[] = [
     ['AutoKore — Relatório de Estoque'],
     [`Oficina: ${oficina}  |  Gerado em: ${fmt(new Date())}`],
     [],
@@ -98,7 +101,7 @@ export async function exportarEstoque(
      'Status', 'Custo unit. (R$)', 'Venda unit. (R$)', 'Valor total (R$)'],
   ]
 
-  const linhas = itens.map(item => [
+  const linhas: Linha[] = itens.map(item => [
     item.nome,
     item.categoria,
     item.unidade,
@@ -111,7 +114,7 @@ export async function exportarEstoque(
   ])
 
   const valorTotal = itens.reduce((s, i) => s + i.quantidade * i.preco_custo, 0)
-  const rodape = [
+  const rodape: Linha[] = [
     [],
     ['', '', '', '', '', '', '', 'VALOR TOTAL:', valorTotal],
     ['', '', '', '', '', '', '', 'Total de itens:', itens.length],
@@ -134,14 +137,14 @@ export async function exportarMovimentacoes(
   nomes:   Record<string, string>,  // item_id → nome
   oficina: string,
 ) {
-  const cabecalho = [
+  const cabecalho: Linha[] = [
     ['AutoKore — Movimentações de Estoque'],
     [`Oficina: ${oficina}  |  Gerado em: ${fmt(new Date())}`],
     [],
     ['Data / Hora', 'Tipo', 'Peça', 'Qtd', 'OS vinculada', 'Responsável', 'Motivo'],
   ]
 
-  const linhas = movs.map(m => [
+  const linhas: Linha[] = movs.map(m => [
     fmt(m.createdAt),
     m.tipo === 'entrada' ? 'Entrada' : 'Saída',
     nomes[m.item_id] ?? m.item_id,
@@ -165,14 +168,14 @@ export async function exportarAgendamentos(
   agendamentos: Agendamento[],
   oficina:      string,
 ) {
-  const cabecalho = [
+  const cabecalho: Linha[] = [
     ['AutoKore — Relatório de Agendamentos'],
     [`Oficina: ${oficina}  |  Gerado em: ${fmt(new Date())}`],
     [],
     ['Data', 'Horário', 'Cliente', 'WhatsApp', 'Veículo', 'Placa', 'Serviço', 'Mecânico', 'Status'],
   ]
 
-  const linhas = agendamentos.map(ag => [
+  const linhas: Linha[] = agendamentos.map(ag => [
     format(ag.data_hora, 'dd/MM/yyyy'),
     format(ag.data_hora, 'HH:mm'),
     ag.cliente_nome,
@@ -203,7 +206,7 @@ export async function exportarDesempenhoMecanicos(
   mes:     string,
   oficina: string,
 ) {
-  const cabecalho = [
+  const cabecalho: Linha[] = [
     [`AutoKore — Desempenho de Mecânicos — ${mes}`],
     [`Oficina: ${oficina}  |  Gerado em: ${fmt(new Date())}`],
     [],
@@ -211,7 +214,7 @@ export async function exportarDesempenhoMecanicos(
      'Faturamento Gerado (R$)', 'Ticket Médio (R$)', 'Tempo Médio (min)'],
   ]
 
-  const linhas = dados.map(m => [
+  const linhas: Linha[] = dados.map(m => [
     m.nome, m.os_mes, m.os_concluidas,
     `${m.taxa_conclusao}%`,
     m.faturamento_gerado,
