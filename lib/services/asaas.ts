@@ -1,166 +1,79 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getApps, initializeApp, cert } from 'firebase-admin/app'
-import { getAuth } from 'firebase-admin/auth'
-import { getFirestore } from 'firebase-admin/firestore'
+import { auth } from '@/lib/firebase/config'
 
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId:   process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey:  process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  })
+const API = '/api/asaas'
+
+export const PLANOS_ASAAS = {
+  basico: {
+    nome:      'Básico',
+    valor:     0,
+    descricao: 'Plano Básico AutoKore',
+  },
+  pro: {
+    nome:      'Profissional',
+    valor:     97,
+    descricao: 'Plano Profissional AutoKore',
+  },
+  premium: {
+    nome:      'Premium',
+    valor:     247,
+    descricao: 'Plano Premium AutoKore',
+  },
 }
 
-const adminAuth = getAuth()
-const db = getFirestore()
-
-const ASAAS_URL = 'https://api.asaas.com/v3'
-const ASAAS_KEY = process.env.ASAAS_API_KEY!
-const MASTER_EMAIL = 'nathan.f.dasilva@gmail.com'
-
-const headers = {
-  'Content-Type': 'application/json',
-  'access_token': ASAAS_KEY,
+async function authHeaders() {
+  const token = await auth.currentUser?.getIdToken()
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
 }
 
-async function criarClienteAsaas(dados: {
-  name:         string
-  cpfCnpj?:     string
-  mobilePhone?: string
-  email?:       string
+export async function criarClienteAsaas(dados: {
+  name:          string
+  cpfCnpj?:      string
+  mobilePhone?:  string
+  email?:        string
 }) {
-  const res = await fetch(`${ASAAS_URL}/customers`, {
+  const res = await fetch(API, {
     method:  'POST',
-    headers,
-    body: JSON.stringify(dados),
+    headers: await authHeaders(),
+    body:    JSON.stringify({ action: 'criar_cliente', ...dados }),
   })
   return res.json()
 }
 
-async function criarAssinatura(dados: {
+export async function criarAssinatura(dados: {
   customer:           string
-  billingType:        'CREDIT_CARD' | 'PIX' | 'BOLETO'
-  value:              number
-  nextDueDate:        string
-  cycle:              'MONTHLY'
-  description:        string
+  plano:              keyof typeof PLANOS_ASAAS
+  billingType:        'PIX' | 'CREDIT_CARD' | 'BOLETO'
   externalReference?: string
 }) {
-  const res = await fetch(`${ASAAS_URL}/subscriptions`, {
+  const plano = PLANOS_ASAAS[dados.plano]
+  const hoje  = new Date()
+  const nextDueDate = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`
+
+  const res = await fetch(API, {
     method:  'POST',
-    headers,
-    body: JSON.stringify(dados),
+    headers: await authHeaders(),
+    body: JSON.stringify({
+      action:             'criar_assinatura',
+      customer:           dados.customer,
+      billingType:        dados.billingType,
+      value:              plano.valor,
+      nextDueDate,
+      cycle:              'MONTHLY',
+      description:        plano.descricao,
+      externalReference:  dados.externalReference,
+    }),
   })
   return res.json()
 }
 
-// Busca a oficina do usuário autenticado, pra garantir que ele só age sobre a própria assinatura.
-async function getOficinaDoUsuario(uid: string) {
-  const userSnap = await db.collection('users').doc(uid).get()
-  if (!userSnap.exists) return null
-  const oficinaId = userSnap.data()?.oficina_id
-  if (!oficinaId) return null
-  const oficinaSnap = await db.collection('oficinas').doc(oficinaId).get()
-  if (!oficinaSnap.exists) return null
-  return { id: oficinaSnap.id, ...oficinaSnap.data() } as any
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    // 1. Exige login de verdade — sem token válido, nem entra.
-    const authHeader = req.headers.get('authorization') || ''
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (!token) {
-      return NextResponse.json({ erro: 'Não autenticado.' }, { status: 401 })
-    }
-
-    let decoded
-    try {
-      decoded = await adminAuth.verifyIdToken(token)
-    } catch {
-      return NextResponse.json({ erro: 'Sessão inválida.' }, { status: 401 })
-    }
-
-    // 2. Descobre a oficina de quem está chamando — toda ação abaixo fica presa a ela.
-    const oficina = await getOficinaDoUsuario(decoded.uid)
-    if (!oficina) {
-      return NextResponse.json({ erro: 'Oficina não encontrada para este usuário.' }, { status: 403 })
-    }
-
-    const body = await req.json()
-    const { action, ...dados } = body
-
-    if (action === 'criar_cliente') {
-      const cliente = await criarClienteAsaas(dados)
-      return NextResponse.json(cliente)
-    }
-
-    if (action === 'criar_assinatura') {
-      // Ignora qualquer externalReference que o cliente mande — usa sempre a oficina real do usuário logado.
-      const assinatura = await criarAssinatura({ ...dados, externalReference: oficina.id })
-      return NextResponse.json(assinatura)
-    }
-
-    if (action === 'listar_assinaturas') {
-      if (dados.customer_id !== oficina.asaas_id) {
-        return NextResponse.json({ erro: 'Acesso negado.' }, { status: 403 })
-      }
-      const res = await fetch(`${ASAAS_URL}/subscriptions?customer=${dados.customer_id}`, { headers })
-      const data = await res.json()
-      return NextResponse.json(data)
-    }
-
-    if (action === 'cancelar_assinatura') {
-      if (dados.subscription_id !== oficina.assinatura_id) {
-        return NextResponse.json({ erro: 'Acesso negado.' }, { status: 403 })
-      }
-      const res = await fetch(`${ASAAS_URL}/subscriptions/${dados.subscription_id}/cancel`, {
-        method: 'POST',
-        headers,
-      })
-      const data = await res.json()
-      return NextResponse.json(data)
-    }
-
-    return NextResponse.json({ erro: 'Acao invalida' }, { status: 400 })
-
-  } catch (e: any) {
-    return NextResponse.json({ erro: e.message }, { status: 500 })
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    // Trava total: só o Master consegue listar todas as assinaturas.
-    const authHeader = req.headers.get('authorization') || ''
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (!token) {
-      return NextResponse.json({ erro: 'Não autenticado.' }, { status: 401 })
-    }
-    let decoded
-    try {
-      decoded = await adminAuth.verifyIdToken(token)
-    } catch {
-      return NextResponse.json({ erro: 'Sessão inválida.' }, { status: 401 })
-    }
-    if (decoded.email !== MASTER_EMAIL) {
-      return NextResponse.json({ erro: 'Acesso negado.' }, { status: 403 })
-    }
-
-    const { searchParams } = new URL(req.url)
-    const action = searchParams.get('action')
-
-    if (action === 'listar_planos') {
-      const res = await fetch(`${ASAAS_URL}/subscriptions`, { headers })
-      const data = await res.json()
-      return NextResponse.json(data)
-    }
-
-    return NextResponse.json({ erro: 'Acao invalida' }, { status: 400 })
-
-  } catch (e: any) {
-    return NextResponse.json({ erro: e.message }, { status: 500 })
-  }
+export async function cancelarAssinatura(subscription_id: string) {
+  const res = await fetch(API, {
+    method:  'POST',
+    headers: await authHeaders(),
+    body:    JSON.stringify({ action: 'cancelar_assinatura', subscription_id }),
+  })
+  return res.json()
 }
