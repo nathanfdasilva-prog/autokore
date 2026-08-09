@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { User, Building, CheckCircle, ChevronRight } from 'lucide-react'
@@ -24,11 +24,11 @@ function trackEvent(eventName: string, params: Record<string, any> = {}) {
 
 const DIAS_TRIAL = 14
 
-export default function RegistroPage() {
+// Componente separado só pra poder usar useSearchParams dentro do Suspense
+function RegistroConteudo() {
   const router       = useRouter()
   const searchParams = useSearchParams()
 
-  // Captura de onde a pessoa veio (ex: /registro?origem=quiz&score=alto)
   const origem      = searchParams.get('origem') ?? 'direto'
   const origemScore = searchParams.get('score')  ?? null
 
@@ -258,5 +258,13 @@ export default function RegistroPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function RegistroPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegistroConteudo />
+    </Suspense>
   )
 }
