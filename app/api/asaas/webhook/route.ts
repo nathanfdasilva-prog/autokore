@@ -1,51 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/firebase/config'
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { getApps, initializeApp, cert } from 'firebase-admin/app'
+import { getFirestore } from 'firebase-admin/firestore'
+
+// Inicializa o Firebase Admin apenas uma vez (evita erro em ambiente serverless)
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId:   process.env.FIREBASE_ADMIN_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+      privateKey:  process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  })
+}
+
+const db = getFirestore()
+
+const EVENTOS_PAGAMENTO_CONFIRMADO = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED']
+const EVENTOS_PAGAMENTO_FALHOU     = ['PAYMENT_OVERDUE', 'PAYMENT_DELETED', 'PAYMENT_REFUNDED']
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { event, payment } = body
-
-    console.log('[Asaas Webhook]', event, payment?.id)
-
-    if (!payment?.customer) {
-      return NextResponse.json({ ok: true })
+    // 1. Confere se quem chamou é realmente o Asaas (token secreto)
+    const tokenRecebido = req.headers.get('asaas-access-token')
+    if (tokenRecebido !== process.env.ASAAS_WEBHOOK_TOKEN) {
+      return NextResponse.json({ erro: 'Token invalido' }, { status: 401 })
     }
 
-    // Busca a oficina pelo asaas_id
-    const q = query(
-      collection(db, 'oficinas'),
-      where('asaas_id', '==', payment.customer)
-    )
-    const snap = await getDocs(q)
+    const body    = await req.json()
+    const evento  = body.event as string
+    const payment = body.payment
 
-    if (snap.empty) {
-      console.log('[Webhook] Oficina não encontrada para customer:', payment.customer)
-      return NextResponse.json({ ok: true })
+    if (!payment) {
+      return NextResponse.json({ ok: true, ignorado: 'sem payment' })
     }
 
-    const oficina_id = snap.docs[0].id
+    // 2. Acha a oficina dona dessa assinatura
+    let oficinaSnap: FirebaseFirestore.DocumentSnapshot | null = null
 
-    // Trata os eventos
-    if (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') {
-      await updateDoc(doc(db, 'oficinas', oficina_id), {
-        assinatura_ativa: true,
-      })
-      console.log('[Webhook] Assinatura ativada para oficina:', oficina_id)
+    if (payment.externalReference) {
+      const doc = await db.collection('oficinas').doc(payment.externalReference).get()
+      if (doc.exists) oficinaSnap = doc
     }
 
-    if (event === 'PAYMENT_OVERDUE' || event === 'SUBSCRIPTION_CANCELED') {
-      await updateDoc(doc(db, 'oficinas', oficina_id), {
-        assinatura_ativa: false,
-      })
-      console.log('[Webhook] Assinatura desativada para oficina:', oficina_id)
+    if (!oficinaSnap) {
+      const query = await db.collection('oficinas')
+        .where('assinatura_id', '==', payment.subscription)
+        .limit(1)
+        .get()
+      if (!query.empty) oficinaSnap = query.docs[0]
+    }
+
+    if (!oficinaSnap) {
+      console.error('[webhook asaas] oficina nao encontrada para assinatura', payment.subscription)
+      return NextResponse.json({ ok: true, ignorado: 'oficina nao encontrada' })
+    }
+
+    // 3. Atualiza o status conforme o evento
+    if (EVENTOS_PAGAMENTO_CONFIRMADO.includes(evento)) {
+      await oficinaSnap.ref.update({ assinatura_ativa: true })
+    } else if (EVENTOS_PAGAMENTO_FALHOU.includes(evento)) {
+      await oficinaSnap.ref.update({ assinatura_ativa: false })
     }
 
     return NextResponse.json({ ok: true })
 
   } catch (e: any) {
-    console.error('[Webhook Error]', e.message)
+    console.error('[webhook asaas] erro:', e)
     return NextResponse.json({ erro: e.message }, { status: 500 })
   }
 }
