@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApps, initializeApp, cert } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
 
-// Inicializa o Firebase Admin apenas uma vez (evita erro em ambiente serverless)
 if (!getApps().length) {
   initializeApp({
     credential: cert({
@@ -15,11 +16,32 @@ if (!getApps().length) {
 
 const db = getFirestore()
 
+// Limite bem mais folgado que o das outras rotas — é o Asaas quem chama isso,
+// não queremos nunca bloquear um aviso de pagamento de verdade.
+const webhookRatelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(30, '60 s'),
+  analytics: true,
+  prefix: 'autokore-webhook-ratelimit',
+})
+
 const EVENTOS_PAGAMENTO_CONFIRMADO = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED']
 const EVENTOS_PAGAMENTO_FALHOU     = ['PAYMENT_OVERDUE', 'PAYMENT_DELETED', 'PAYMENT_REFUNDED']
 
+function getIP(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? req.headers.get('x-real-ip')
+    ?? 'sem-ip'
+}
+
 export async function POST(req: NextRequest) {
   try {
+    // 0. Limite de requisições — protege contra flood, mas bem folgado.
+    const { success } = await webhookRatelimit.limit(getIP(req))
+    if (!success) {
+      return NextResponse.json({ erro: 'Muitas requisições.' }, { status: 429 })
+    }
+
     // 1. Confere se quem chamou é realmente o Asaas (token secreto)
     const tokenRecebido = req.headers.get('asaas-access-token')
     if (tokenRecebido !== process.env.ASAAS_WEBHOOK_TOKEN) {
