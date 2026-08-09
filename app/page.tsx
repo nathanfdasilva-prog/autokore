@@ -44,8 +44,6 @@ export default function LandingPage() {
     }
   }, [loading, user])
 
-  if (loading || user) return null
-
   return (
     <div className="lp-wrap">
       {/* NAV */}
