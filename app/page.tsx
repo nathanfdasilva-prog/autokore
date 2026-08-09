@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/context/AuthContext'
 import DiagnosticoQuiz from '@/components/quiz/DiagnosticoQuiz'
@@ -10,9 +10,43 @@ export default function LandingPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
 
+  const mockupWrapRef = useRef<HTMLDivElement>(null)
+  const mockupRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (!loading && user) router.replace('/dashboard')
   }, [user, loading])
+
+  // Inclinação 3D no mockup do hero — só ativa em dispositivo com mouse de verdade.
+  // Em celular (a maioria do tráfego) esse código nem roda, zero custo de performance.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches
+    if (!supportsHover) return
+
+    const wrap = mockupWrapRef.current
+    const card = mockupRef.current
+    if (!wrap || !card) return
+
+    function handleMove(e: MouseEvent) {
+      const rect = wrap!.getBoundingClientRect()
+      const x = (e.clientX - rect.left) / rect.width - 0.5
+      const y = (e.clientY - rect.top) / rect.height - 0.5
+      card!.style.transform = `rotateY(${x * 10}deg) rotateX(${-y * 10}deg)`
+    }
+    function handleLeave() {
+      card!.style.transform = 'rotateY(0deg) rotateX(0deg)'
+    }
+
+    wrap.addEventListener('mousemove', handleMove)
+    wrap.addEventListener('mouseleave', handleLeave)
+    return () => {
+      wrap.removeEventListener('mousemove', handleMove)
+      wrap.removeEventListener('mouseleave', handleLeave)
+    }
+  }, [])
+
+  if (loading || user) return null
 
   return (
     <div className="lp-wrap">
@@ -46,8 +80,8 @@ export default function LandingPage() {
               <div className="trust-text"><strong>Em fase beta</strong> — entre agora e ajude a moldar o sistema</div>
             </div>
           </div>
-          <div className="lp-mockup-wrap">
-            <div className="lp-mockup">
+          <div className="lp-mockup-wrap" ref={mockupWrapRef} style={{ perspective: '1000px' }}>
+            <div className="lp-mockup" ref={mockupRef} style={{ transformStyle: 'preserve-3d', transition: 'transform 0.15s ease-out' }}>
               <div className="mockup-bar">
                 <div className="dot dot-r" /><div className="dot dot-y" /><div className="dot dot-g" />
                 <div className="mockup-url">autokore.com.br/dashboard</div>
