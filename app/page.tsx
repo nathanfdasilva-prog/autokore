@@ -17,8 +17,6 @@ export default function LandingPage() {
     if (!loading && user) router.replace('/dashboard')
   }, [user, loading])
 
-  // Inclinação 3D no mockup do hero — só ativa em dispositivo com mouse de verdade.
-  // Em celular (a maioria do tráfego) esse código nem roda, zero custo de performance.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches
@@ -271,6 +269,8 @@ export default function LandingPage() {
             <a href="#faq">FAQ</a>
             <Link href="/login">Entrar</Link>
             <Link href="/registro">Cadastrar</Link>
+            <Link href="/privacidade">Privacidade</Link>
+            <Link href="/termos">Termos</Link>
           </div>
           <div className="footer-copy">© 2026 AutoKore. Todos os direitos reservados.</div>
         </div>
