@@ -14,8 +14,6 @@ export default function LandingPage() {
     if (!loading && user) router.replace('/dashboard')
   }, [user, loading])
 
-  if (loading || user) return null
-
   return (
     <div className="lp-wrap">
       {/* NAV */}
