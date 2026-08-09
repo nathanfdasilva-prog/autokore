@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/context/AuthContext'
 import { collection, getDocs, updateDoc, doc, deleteDoc, db } from '@/lib/firebase/firestore'
-import { Building2, Shield, ShieldOff, ClipboardList, LogOut, RefreshCw, Users, ArrowRightLeft, X, Archive, Trash2, Inbox } from 'lucide-react'
+import { Building2, Shield, ShieldOff, ClipboardList, LogOut, RefreshCw, Users, ArrowRightLeft, X, Archive, Trash2, Inbox, Target } from 'lucide-react'
 import { logout } from '@/lib/firebase/auth'
 import { format } from 'date-fns'
 
@@ -20,6 +20,8 @@ interface Oficina {
   bloqueada?: boolean
   createdAt: any
   plano?: string
+  origem?: string
+  origem_score?: string
 }
 
 interface Stats {
@@ -45,6 +47,17 @@ interface UsuarioMaster {
   role: string
   oficina_id: string
   ativo: boolean
+}
+
+const ORIGEM_LABEL: Record<string, { label: string; cls: string }> = {
+  quiz:   { label: 'QUIZ',   cls: 'bg-purple-900 text-purple-300' },
+  direto: { label: 'DIRETO', cls: 'bg-gray-800 text-gray-400' },
+}
+
+const SCORE_LABEL: Record<string, { label: string; cls: string }> = {
+  alto:  { label: 'Score alto',  cls: 'bg-red-900 text-red-300' },
+  medio: { label: 'Score médio', cls: 'bg-yellow-900 text-yellow-300' },
+  baixo: { label: 'Score baixo', cls: 'bg-green-900 text-green-300' },
 }
 
 export default function MasterPage() {
@@ -182,6 +195,8 @@ export default function MasterPage() {
 
   if (!perfil || perfil.email !== MASTER_EMAIL) return null
 
+  const totalVindoDoQuiz = oficinas.filter(o => o.origem === 'quiz').length
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <div className="bg-gray-900 border-b border-gray-800 px-4 md:px-6 py-4 flex items-center justify-between">
@@ -202,7 +217,7 @@ export default function MasterPage() {
 
       <div className="p-4 md:p-6">
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <Building2 size={20} className="text-blue-400 mb-2" />
             <p className="text-2xl font-bold">{oficinas.length}</p>
@@ -227,6 +242,11 @@ export default function MasterPage() {
             <ClipboardList size={20} className="text-orange-400 mb-2" />
             <p className="text-2xl font-bold">{Object.values(stats).reduce((s, v) => s + v.os, 0)}</p>
             <p className="text-xs text-gray-400">Total OS</p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <Target size={20} className="text-pink-400 mb-2" />
+            <p className="text-2xl font-bold">{totalVindoDoQuiz}</p>
+            <p className="text-xs text-gray-400">Vindas do Quiz</p>
           </div>
         </div>
 
@@ -255,7 +275,10 @@ export default function MasterPage() {
             <div className="text-center py-16 text-gray-500">Nenhuma oficina cadastrada ainda.</div>
           ) : (
             <div className="space-y-3">
-              {oficinas.map(oficina => (
+              {oficinas.map(oficina => {
+                const origemInfo = ORIGEM_LABEL[oficina.origem ?? 'direto'] ?? ORIGEM_LABEL.direto
+                const scoreInfo  = oficina.origem_score ? SCORE_LABEL[oficina.origem_score] : null
+                return (
                 <div key={oficina.id} className={`bg-gray-900 border rounded-xl p-4 ${oficina.bloqueada ? 'border-red-800/50' : 'border-gray-800'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -264,6 +287,14 @@ export default function MasterPage() {
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${oficina.bloqueada ? 'bg-red-900 text-red-300' : 'bg-green-900 text-green-300'}`}>
                           {oficina.bloqueada ? 'BLOQUEADA' : 'ATIVA'}
                         </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${origemInfo.cls}`}>
+                          {origemInfo.label}
+                        </span>
+                        {scoreInfo && (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${scoreInfo.cls}`}>
+                            {scoreInfo.label}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-gray-400 mb-2">{oficina.email_dono}</p>
                       <p className="text-[10px] text-gray-600 mb-2 font-mono">ID: {oficina.id}</p>
@@ -298,7 +329,7 @@ export default function MasterPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )
         ) : aba === 'usuarios' ? (

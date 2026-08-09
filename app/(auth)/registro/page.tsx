@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { User, Building, CheckCircle, ChevronRight } from 'lucide-react'
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
@@ -25,7 +25,13 @@ function trackEvent(eventName: string, params: Record<string, any> = {}) {
 const DIAS_TRIAL = 14
 
 export default function RegistroPage() {
-  const router = useRouter()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+
+  // Captura de onde a pessoa veio (ex: /registro?origem=quiz&score=alto)
+  const origem      = searchParams.get('origem') ?? 'direto'
+  const origemScore = searchParams.get('score')  ?? null
+
   const [etapa, setEtapa] = useState<Etapa>('conta')
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
@@ -38,9 +44,9 @@ export default function RegistroPage() {
 
   useEffect(() => {
     if (etapa === 'sucesso') {
-      trackEvent('signup_completed', { step: ETAPA_PARA_STEP[etapa], step_name: etapa })
+      trackEvent('signup_completed', { step: ETAPA_PARA_STEP[etapa], step_name: etapa, origem })
     } else {
-      trackEvent('signup_step_view', { step: ETAPA_PARA_STEP[etapa], step_name: etapa })
+      trackEvent('signup_step_view', { step: ETAPA_PARA_STEP[etapa], step_name: etapa, origem })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etapa])
@@ -72,6 +78,8 @@ export default function RegistroPage() {
         whatsapp: oficina.whatsapp, endereco: `${oficina.cidade} / ${oficina.estado}`,
         plano: 'pro', dono_uid: cred.user.uid, ativo: true,
         assinatura_ativa: false, trial_ate: trialAte,
+        origem: origem,
+        origem_score: origemScore,
         createdAt: serverTimestamp(),
       })
 

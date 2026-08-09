@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/context/AuthContext'
+import DiagnosticoQuiz from '@/components/quiz/DiagnosticoQuiz'
 import './landing.css'
 
 export default function LandingPage() {
@@ -73,7 +74,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FEITO POR QUEM VIVE A OFICINA — movida pra logo depois do hero */}
+      {/* FEITO POR QUEM VIVE A OFICINA */}
       <section className="lp-section" style={{background:'#0a0a0a'}}>
         <div className="lp-section-inner">
           <div className="section-label">Quem está por trás</div>
@@ -145,13 +146,22 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <div style={{textAlign:'center',marginTop:'40px'}}>
-            <Link href="/registro" className="btn-primary">Criar conta grátis →</Link>
-          </div>
         </div>
       </section>
 
-      {/* PLANOS — simplificado pro modelo de trial de 14 dias */}
+      {/* DIAGNÓSTICO / QUIZ */}
+      <section className="lp-section" style={{background:'#0a0a0a'}}>
+        <div className="lp-section-inner">
+          <div className="section-label" style={{textAlign:'center'}}>Diagnóstico grátis</div>
+          <h2 className="section-title">Quanto sua oficina está perdendo por desorganização?</h2>
+          <p className="section-sub" style={{maxWidth:'560px',margin:'0 auto 32px'}}>
+            Responde 5 perguntas rápidas e descubra quantas horas por mês você está perdendo com processo manual.
+          </p>
+          <DiagnosticoQuiz />
+        </div>
+      </section>
+
+      {/* PLANOS */}
       <section className="lp-section" id="planos">
         <div className="lp-section-inner">
           <div className="section-label">Planos</div>
@@ -203,7 +213,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA FINAL — sem formulário de WhatsApp, só o cadastro direto + contato via Instagram */}
+      {/* CTA FINAL */}
       <section className="lp-lead" id="contato">
         <div className="lead-inner">
           <div className="section-label" style={{textAlign:'center'}}>Comece agora</div>
