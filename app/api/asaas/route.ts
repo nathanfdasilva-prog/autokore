@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getApps, initializeApp, cert } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
+import { ratelimit } from '@/lib/ratelimit'
 
 if (!getApps().length) {
   initializeApp({
@@ -23,6 +24,12 @@ const MASTER_EMAIL = 'nathan.f.dasilva@gmail.com'
 const headers = {
   'Content-Type': 'application/json',
   'access_token': ASAAS_KEY,
+}
+
+function getIP(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? req.headers.get('x-real-ip')
+    ?? 'sem-ip'
 }
 
 async function criarClienteAsaas(dados: {
@@ -56,7 +63,6 @@ async function criarAssinatura(dados: {
   return res.json()
 }
 
-// Busca a oficina do usuário autenticado, pra garantir que ele só age sobre a própria assinatura.
 async function getOficinaDoUsuario(uid: string) {
   const userSnap = await db.collection('users').doc(uid).get()
   if (!userSnap.exists) return null
@@ -69,6 +75,12 @@ async function getOficinaDoUsuario(uid: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    // 0. Limite de requisições — bloqueia flood/spam vindo do mesmo IP.
+    const { success } = await ratelimit.limit(getIP(req))
+    if (!success) {
+      return NextResponse.json({ erro: 'Muitas requisições. Tente novamente em instantes.' }, { status: 429 })
+    }
+
     // 1. Exige login de verdade — sem token válido, nem entra.
     const authHeader = req.headers.get('authorization') || ''
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
@@ -98,7 +110,6 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'criar_assinatura') {
-      // Ignora qualquer externalReference que o cliente mande — usa sempre a oficina real do usuário logado.
       const assinatura = await criarAssinatura({ ...dados, externalReference: oficina.id })
       return NextResponse.json(assinatura)
     }
@@ -133,7 +144,11 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // Trava total: só o Master consegue listar todas as assinaturas.
+    const { success } = await ratelimit.limit(getIP(req))
+    if (!success) {
+      return NextResponse.json({ erro: 'Muitas requisições. Tente novamente em instantes.' }, { status: 429 })
+    }
+
     const authHeader = req.headers.get('authorization') || ''
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
     if (!token) {
