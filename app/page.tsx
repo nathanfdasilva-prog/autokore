@@ -44,7 +44,7 @@ export default function LandingPage() {
       wrap.removeEventListener('mousemove', handleMove)
       wrap.removeEventListener('mouseleave', handleLeave)
     }
-  }, [])
+  }, [loading, user])
 
   if (loading || user) return null
 
