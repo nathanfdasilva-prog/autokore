@@ -1,13 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Save, User, Building, Lock, UserPlus, Clock } from 'lucide-react'
+import { Save, User, Building, Lock, UserPlus, Clock, Wrench, Plus, Trash2 } from 'lucide-react'
 import {
   doc, updateDoc, getDoc, setDoc,
   serverTimestamp, db,
 } from '@/lib/firebase/firestore'
 import { recuperarSenha } from '@/lib/firebase/auth'
 import { useAuth } from '@/lib/context/AuthContext'
-import type { Oficina } from '@/lib/types'
+import type { Oficina, ServicoPadrao } from '@/lib/types'
 
 const DIAS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
 
@@ -26,6 +26,13 @@ export default function ConfiguracoesPage() {
     Object.fromEntries(DIAS.map(d => [d, { aberto: d !== 'Domingo', inicio: '08:00', fim: '18:00' }]))
   )
 
+  // Calculadora de mão de obra
+  const [servicos,          setServicos]          = useState<ServicoPadrao[]>([])
+  const [novoServicoNome,   setNovoServicoNome]    = useState('')
+  const [novoServicoHoras,  setNovoServicoHoras]   = useState('')
+  const [salvandoCalc,      setSalvandoCalc]       = useState(false)
+  const [msgCalc,           setMsgCalc]            = useState('')
+
   const [emailConvite,  setEmailConvite]  = useState('')
   const [nomeConvite,   setNomeConvite]   = useState('')
   const [enviandoConv,  setEnviandoConv]  = useState(false)
@@ -38,6 +45,7 @@ export default function ConfiguracoesPage() {
         const data = snap.data() as any
         setOficina(data as Oficina)
         if (data.horarios) setHorarios(data.horarios)
+        if (data.servicos_padrao) setServicos(data.servicos_padrao)
       }
     })
   }, [isAdmin, perfil?.oficina_id])
@@ -70,6 +78,40 @@ export default function ConfiguracoesPage() {
     } finally {
       setSalvandoOficina(false)
     }
+  }
+
+  async function salvarCalculadora() {
+    if (!perfil?.oficina_id) return
+    setSalvandoCalc(true)
+    setMsgCalc('')
+    try {
+      await updateDoc(doc(db, 'oficinas', perfil.oficina_id), {
+        valor_hora:      oficina.valor_hora ?? 0,
+        servicos_padrao: servicos,
+        updatedAt:       serverTimestamp(),
+      })
+      setMsgCalc('✓ Calculadora atualizada!')
+    } catch {
+      setMsgCalc('Erro ao salvar.')
+    } finally {
+      setSalvandoCalc(false)
+    }
+  }
+
+  function adicionarServico() {
+    if (!novoServicoNome.trim() || !novoServicoHoras || isNaN(Number(novoServicoHoras))) return
+    const novo: ServicoPadrao = {
+      id:    Date.now().toString(),
+      nome:  novoServicoNome.trim(),
+      horas: Number(novoServicoHoras),
+    }
+    setServicos(prev => [...prev, novo])
+    setNovoServicoNome('')
+    setNovoServicoHoras('')
+  }
+
+  function removerServico(id: string) {
+    setServicos(prev => prev.filter(s => s.id !== id))
   }
 
   async function enviarRedefinicao() {
@@ -189,6 +231,61 @@ export default function ConfiguracoesPage() {
                 <Save size={15} />{salvandoOficina ? 'Salvando...' : 'Salvar dados da oficina'}
               </button>
             </div>
+          </div>
+
+          {/* Calculadora de mão de obra */}
+          <div className="card">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1 flex items-center gap-2">
+              <Wrench size={16} className="text-orange-500" />Calculadora de mão de obra
+            </h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+              Defina o valor da sua hora e cadastre os serviços mais comuns com o tempo estimado.
+              O mecânico vai ver isso como sugestão ao criar a OS, mas quem decide o valor final é sempre você, na aprovação.
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Valor da sua hora (R$)</label>
+              <input type="number" min={0} step={0.01}
+                value={oficina.valor_hora ?? ''}
+                onChange={e => setOficina(o => ({ ...o, valor_hora: Number(e.target.value) }))}
+                placeholder="Ex: 80" className="input-base max-w-[200px]" />
+            </div>
+
+            {servicos.length > 0 && (
+              <div className="mb-4 space-y-2">
+                {servicos.map(s => (
+                  <div key={s.id} className="flex items-center gap-2 py-2 border-b border-gray-100 last:border-0">
+                    <p className="flex-1 text-sm font-medium text-gray-800 dark:text-white truncate">{s.nome}</p>
+                    <p className="text-xs text-gray-500 w-16 text-right">{s.horas}h</p>
+                    <button type="button" onClick={() => removerServico(s.id)} className="text-gray-400 hover:text-red-500 transition">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2 items-end mb-1">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Serviço</label>
+                <input value={novoServicoNome} onChange={e => setNovoServicoNome(e.target.value)}
+                  placeholder="Ex: Troca de óleo" className="input-base" />
+              </div>
+              <div className="w-24">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
+                <input type="number" min={0} step={0.25} value={novoServicoHoras} onChange={e => setNovoServicoHoras(e.target.value)}
+                  placeholder="0.5" className="input-base" />
+              </div>
+              <button type="button" onClick={adicionarServico}
+                className="w-9 h-9 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition flex-shrink-0">
+                <Plus size={16} />
+              </button>
+            </div>
+
+            {msgCalc && <p className={`text-xs mt-2 ${msgCalc.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>{msgCalc}</p>}
+            <button onClick={salvarCalculadora} disabled={salvandoCalc} className="btn-primary flex items-center gap-2 mt-4">
+              <Save size={15} />{salvandoCalc ? 'Salvando...' : 'Salvar calculadora'}
+            </button>
           </div>
 
           {/* Horário de funcionamento */}

@@ -21,6 +21,13 @@ export interface Usuario {
 // ---------- OFICINA ----------
 export type Plano = 'basico' | 'pro' | 'premium'
 
+// Serviço padrão da calculadora de mão de obra (ex: "Troca de óleo" = 0.5h)
+export interface ServicoPadrao {
+  id:    string
+  nome:  string
+  horas: number
+}
+
 export interface Oficina {
   id:                string
   nome:              string
@@ -35,6 +42,8 @@ export interface Oficina {
   asaas_id?:         string
   assinatura_id?:    string
   trial_ate?:        Date
+  valor_hora?:        number          // valor da hora de mão de obra da oficina
+  servicos_padrao?:   ServicoPadrao[] // tabela de serviços comuns c/ tempo estimado
 }
 
 // ---------- CLIENTE / VEÍCULO ----------
