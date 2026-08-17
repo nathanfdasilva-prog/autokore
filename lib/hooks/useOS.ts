@@ -7,7 +7,7 @@ import {
 } from '../firebase/firestore'
 import { docToData } from '../firebase/firestore'
 import { baixarEstoque } from './useEstoque'
-import type { OrdemServico, StatusOS, ItemOS } from '../types'
+import type { OrdemServico, StatusOS, ItemOS, SugestaoMaoObra } from '../types'
 import { useAuth } from '../context/AuthContext'
 
 export function useMinhasOS() {
@@ -81,7 +81,8 @@ export async function criarOS(dados: {
   mecanico_id:         string
   mecanico_nome:       string
   agendamento_id?:     string
-  status_inicial?:     StatusOS   // padrão: aguardando_aprovacao
+  status_inicial?:     StatusOS
+  sugestao_mao_obra?:  SugestaoMaoObra
 }): Promise<string> {
   const numero = await proximoNumeroOS(dados.oficina_id)
 
@@ -108,6 +109,7 @@ export async function criarOS(dados: {
 
   if (dados.km_entrada !== undefined) payload.km_entrada = dados.km_entrada
   if (dados.agendamento_id !== undefined) payload.agendamento_id = dados.agendamento_id
+  if (dados.sugestao_mao_obra !== undefined) payload.sugestao_mao_obra = dados.sugestao_mao_obra
 
   const ref = await addDoc(collection(db, 'ordens_servico'), payload)
   return ref.id
@@ -148,9 +150,6 @@ export async function finalizarOS(params: {
 }): Promise<void> {
   const { os_id, oficina_id, usuario_id, usuario_nome, itens, valor_mao_obra, forma_pagamento, observacoes } = params
 
-  // Só dá baixa nas peças que vieram do ESTOQUE.
-  // Peças digitadas na mão (tipo_item === 'manual') não mexem no estoque.
-  // OS antigas sem o campo são tratadas como estoque (comportamento de antes).
   const itensEstoque = itens.filter(i => i.tipo_item !== 'manual')
 
   if (itensEstoque.length > 0) {

@@ -5,15 +5,16 @@
 // Mecânico só cria; valor e finalização é do dono.
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  AlertTriangle, Car, Bike, FileText, Wrench, Trash2, Plus,
+  AlertTriangle, Car, Bike, FileText, Wrench, Trash2, Plus, Calculator,
 } from 'lucide-react'
 import BuscaPecas from './BuscaPecas'
 import { criarOS, salvarItensOS } from '@/lib/hooks/useOS'
 import { useAuth } from '@/lib/context/AuthContext'
-import type { ItemOS } from '@/lib/types'
+import { doc, getDoc, db } from '@/lib/firebase/firestore'
+import type { ItemOS, Oficina, SugestaoMaoObra } from '@/lib/types'
 
 export default function OSForm() {
   const router = useRouter()
@@ -34,8 +35,24 @@ export default function OSForm() {
   const [itens,      setItens]      = useState<ItemOS[]>([])
   const [mostraPecas, setMostraPecas] = useState(false)
 
+  // Sugestão de mão de obra (opcional, informativa)
+  const [oficinaCalc,     setOficinaCalc]     = useState<Pick<Oficina, 'valor_hora' | 'servicos_padrao'>>({})
+  const [mostraCalc,      setMostraCalc]      = useState(false)
+  const [servicoId,       setServicoId]       = useState('')
+  const [horasManual,     setHorasManual]     = useState('')
+
   const [loading, setLoading] = useState(false)
   const [erro,    setErro]    = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!perfil?.oficina_id) return
+    getDoc(doc(db, 'oficinas', perfil.oficina_id)).then(snap => {
+      if (snap.exists()) {
+        const data = snap.data() as any
+        setOficinaCalc({ valor_hora: data.valor_hora, servicos_padrao: data.servicos_padrao ?? [] })
+      }
+    })
+  }, [perfil?.oficina_id])
 
   function setField(k: keyof typeof form, v: string) {
     setForm(f => ({ ...f, [k]: v }))
@@ -55,6 +72,20 @@ export default function OSForm() {
 
   function removerItem(produto_id: string) {
     setItens(prev => prev.filter(i => i.produto_id !== produto_id))
+  }
+
+  const valorHora = oficinaCalc.valor_hora ?? 0
+  const servicoEscolhido = oficinaCalc.servicos_padrao?.find(s => s.id === servicoId)
+  const horasCalculo = servicoEscolhido ? servicoEscolhido.horas : (Number(horasManual) || 0)
+  const valorSugerido = horasCalculo * valorHora
+
+  function montarSugestao(): SugestaoMaoObra | undefined {
+    if (horasCalculo <= 0 || valorHora <= 0) return undefined
+    return {
+      descricao: servicoEscolhido ? servicoEscolhido.nome : 'Manual',
+      horas:     horasCalculo,
+      valor:     valorSugerido,
+    }
   }
 
   async function handleCriar() {
@@ -81,6 +112,7 @@ export default function OSForm() {
         descricao_problema: form.descricao.trim(),
         mecanico_id:        perfil!.uid,
         mecanico_nome:      perfil!.nome,
+        sugestao_mao_obra:  montarSugestao(),
         // status_inicial padrão = aguardando_aprovacao
       })
 
@@ -174,6 +206,51 @@ export default function OSForm() {
           Escreva do mesmo jeito que manda no grupo. O dono ajusta os valores depois.
         </p>
       </div>
+
+      {/* Sugestão de mão de obra (opcional) */}
+      {valorHora > 0 && (
+        <div className="card">
+          {!mostraCalc ? (
+            <button type="button" onClick={() => setMostraCalc(true)}
+              className="w-full flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-orange-600 py-2 transition">
+              <Calculator size={15} />Calcular sugestão de mão de obra (opcional)
+            </button>
+          ) : (
+            <>
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <Calculator size={16} className="text-orange-500" />Sugestão de mão de obra
+              </h2>
+
+              {oficinaCalc.servicos_padrao && oficinaCalc.servicos_padrao.length > 0 && (
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Serviço da tabela</label>
+                  <select value={servicoId} onChange={e => { setServicoId(e.target.value); setHorasManual('') }}
+                    className="input-base">
+                    <option value="">Selecione (ou digite horas manual abaixo)</option>
+                    {oficinaCalc.servicos_padrao.map(s => (
+                      <option key={s.id} value={s.id}>{s.nome} — {s.horas}h</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Ou digite as horas manualmente</label>
+                <input type="number" min={0} step={0.25} value={horasManual}
+                  onChange={e => { setHorasManual(e.target.value); setServicoId('') }}
+                  placeholder="Ex: 2" className="input-base max-w-[140px]" />
+              </div>
+
+              {horasCalculo > 0 && (
+                <div className="mt-3 bg-orange-50 rounded-lg p-3 text-sm text-orange-700">
+                  {horasCalculo}h × R${valorHora.toFixed(2)} = <strong>R${valorSugerido.toFixed(2)}</strong>
+                  <p className="text-xs text-orange-600 mt-1">Isso é só uma sugestão pro dono. O valor final é definido na aprovação.</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Peças (opcional) */}
       <div className="card">
